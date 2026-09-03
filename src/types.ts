@@ -1030,3 +1030,34 @@ export interface BrokerLoad {
   completedAt?: string;
 }
 
+// ==========================================
+// DRIVER LOAD REQUEST TYPES
+// ==========================================
+
+export type DriverRequestedLoadType = 'Broker Load' | 'Company Load (TLB)';
+export type DriverLoadRequestStatus = 'Pending' | 'Approved' | 'Rejected' | 'Assigned';
+
+export interface DriverLoadRequest {
+  id: string;
+  requestNumber: string; // e.g. "LR-2026-001"
+  requestDate: string; // YYYY-MM-DD
+  driverId: string;
+  driverName: string;
+  truckNo: string;
+  loadType: DriverRequestedLoadType;
+  tlbQuantity: number;
+  uom?: string; // e.g. 'Bags' | 'Tons' | 'Pallets'
+  pickupLocation: string;
+  dropLocation: string;
+  customerCompanyName: string;
+  notes?: string;
+  status: DriverLoadRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  reviewNotes?: string;
+  assignedTripId?: string;
+  assignedBrokerLoadId?: string;
+}
+

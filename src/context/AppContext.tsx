@@ -46,6 +46,9 @@ import {
   BrokerDropLocation,
   BrokerLoadStatus,
   BrokerDropStatus,
+  DriverLoadRequest,
+  DriverRequestedLoadType,
+  DriverLoadRequestStatus,
 } from '../types';
 import {
   initialTrips,
@@ -72,6 +75,7 @@ import {
   initialZatcaQrScans,
   initialInvoiceStatusHistory,
   initialBrokerLoads,
+  initialDriverLoadRequests,
 } from '../mockData';
 import { translations } from '../utils/i18n';
 import { generateTaxInvoiceQrBase64 } from '../utils/zatca';
@@ -574,6 +578,14 @@ interface AppContextType {
   addBrokerDropLocation: (loadId: string, drop: Omit<BrokerDropLocation, 'id' | 'stopNumber'>) => void;
   markBrokerLoadDelivered: (id: string) => void;
   attachBrokerPdf: (id: string, fileDataUrl: string, fileName: string) => void;
+
+  // Driver Load Requests (Driver -> Request Load -> Dispatcher/Admin Approval -> Trip / Broker Load)
+  driverLoadRequests: DriverLoadRequest[];
+  addDriverLoadRequest: (request: Omit<DriverLoadRequest, 'id' | 'requestNumber' | 'status' | 'createdAt' | 'updatedAt'>) => DriverLoadRequest;
+  updateDriverLoadRequestStatus: (id: string, status: DriverLoadRequestStatus, reviewNotes?: string, reviewerName?: string) => void;
+  approveAndConvertDriverLoadRequest: (id: string, reviewerName?: string) => { success: boolean; tripId?: string; brokerLoadId?: string; error?: string };
+  rejectDriverLoadRequest: (id: string, reason: string, reviewerName?: string) => void;
+  deleteDriverLoadRequest: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -725,7 +737,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return saved ? JSON.parse(saved) : initialBrokerLoads;
   });
 
+  const [driverLoadRequests, setDriverLoadRequests] = useState<DriverLoadRequest[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY + '_driverLoadRequests');
+    return saved ? JSON.parse(saved) : initialDriverLoadRequests;
+  });
+
   // Sync to local storage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY + '_driverLoadRequests', JSON.stringify(driverLoadRequests));
+  }, [driverLoadRequests]);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY + '_brokerLoads', JSON.stringify(brokerLoads));
   }, [brokerLoads]);
@@ -6743,6 +6764,326 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
   };
 
+  // ==========================================
+  // DRIVER LOAD REQUESTS LOGIC
+  // ==========================================
+
+  const addDriverLoadRequest = (
+    requestData: Omit<DriverLoadRequest, 'id' | 'requestNumber' | 'status' | 'createdAt' | 'updatedAt'>
+  ): DriverLoadRequest => {
+    const nextReqNumber = `REQ-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const nowIso = new Date().toISOString();
+    const newRequest: DriverLoadRequest = {
+      ...requestData,
+      id: 'req_' + Date.now(),
+      requestNumber: nextReqNumber,
+      status: 'Pending',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+
+    setDriverLoadRequests((prev) => [newRequest, ...prev]);
+
+    try {
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+    } catch {
+      // ignore
+    }
+
+    showToast(
+      language === 'ar' ? 'تم تقديم طلب الحمولة' : 'Load Request Submitted',
+      language === 'ar'
+        ? `تم إرسال الطلب ${nextReqNumber} (${requestData.loadType}) بنجاح إلى شاشة الترحيل للموافقة.`
+        : `Request ${nextReqNumber} for ${requestData.loadType} submitted to Dispatcher for approval.`,
+      'success'
+    );
+
+    return newRequest;
+  };
+
+  const updateDriverLoadRequestStatus = (
+    id: string,
+    status: DriverLoadRequestStatus,
+    reviewNotes?: string,
+    reviewerName?: string
+  ) => {
+    const reviewer = reviewerName || (activeRole.toUpperCase() + ' Dispatcher');
+    setDriverLoadRequests((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        return {
+          ...r,
+          status,
+          reviewNotes: reviewNotes || r.reviewNotes,
+          reviewedBy: reviewer,
+          reviewedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      })
+    );
+
+    showToast(
+      language === 'ar' ? 'تم تحديث حالة الطلب' : 'Request Status Updated',
+      language === 'ar' ? `أصبح الطلب الآن: ${status}` : `Request status changed to ${status}.`,
+      'info'
+    );
+  };
+
+  const approveAndConvertDriverLoadRequest = (
+    id: string,
+    reviewerName?: string
+  ): { success: boolean; tripId?: string; brokerLoadId?: string; error?: string } => {
+    const req = driverLoadRequests.find((r) => r.id === id);
+    if (!req) {
+      return { success: false, error: 'Request not found' };
+    }
+
+    const reviewer = reviewerName || (activeRole.toUpperCase() + ' Dispatcher');
+    const nowIso = new Date().toISOString();
+
+    if (req.loadType === 'Company Load (TLB)') {
+      // Create new Company Load (Trip)
+      const nextTripNumber = `TRP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const pickupLoc: LocationPoint = locations.find((l) =>
+        l.name.toLowerCase().includes(req.pickupLocation.toLowerCase())
+      ) || {
+        id: 'loc_req_' + Date.now(),
+        name: req.pickupLocation,
+        city: 'Riyadh',
+        lat: 24.6408,
+        lng: 46.8225,
+        address: req.pickupLocation,
+      };
+
+      const dropLoc: LocationPoint = locations.find((l) =>
+        l.name.toLowerCase().includes(req.dropLocation.toLowerCase())
+      ) || {
+        id: 'loc_drop_' + Date.now(),
+        name: req.dropLocation,
+        city: 'Jeddah',
+        lat: 21.4644,
+        lng: 39.1672,
+        address: req.dropLocation,
+      };
+
+      const driverObj = drivers.find((d) => d.id === req.driverId);
+      const vehicleObj = vehicles.find((v) => v.plateNumber === req.truckNo || v.plateNumber.includes(req.truckNo));
+
+      const newTrip: Trip = {
+        id: 'trp_' + Date.now(),
+        tripNumber: nextTripNumber,
+        driverId: req.driverId,
+        driverName: req.driverName,
+        driverPhone: driverObj?.phone || '+966 50 123 4567',
+        vehicleId: vehicleObj?.id || 'veh_001',
+        vehiclePlate: req.truckNo,
+        vehicleType: 'trailer_30t',
+        customerId: 'cust_' + Date.now(),
+        customerName: req.customerCompanyName,
+        companyName: req.customerCompanyName,
+        itemName: 'Gypsum Mortar Premix (TLB Bulk)',
+        quantity: req.tlbQuantity,
+        uom: req.uom || 'Bags',
+        origin: pickupLoc,
+        destination: dropLoc,
+        status: 'assigned',
+        tripStep: 'loading',
+        isOutsideCompanyLoad: false,
+        loadType: 'gypsum',
+        tlbNumber: req.truckNo,
+        cargoType: 'industrial',
+        price: 4800,
+        cost: 450,
+        driverTripRate: 550,
+        departureTime: nowIso.replace('T', ' ').substring(0, 16),
+        estimatedArrivalTime: new Date(Date.now() + 6 * 3600000).toISOString().replace('T', ' ').substring(0, 16),
+        progressPercent: 20,
+        slipStatus: 'not_submitted',
+        deliveryNote: {
+          dnNumber: `DN-${Date.now().toString().slice(-4)}`,
+          issueDate: req.requestDate || nowIso.split('T')[0],
+          expectedDelivery: new Date(Date.now() + 6 * 3600000).toISOString().replace('T', ' ').substring(0, 16),
+          senderName: pickupLoc.name,
+          senderAddress: pickupLoc.address,
+          senderContact: '+966 12 422 9900',
+          receiverName: req.customerCompanyName,
+          receiverAddress: dropLoc.address,
+          receiverContact: '+966 11 482 9900',
+          items: [
+            {
+              id: 'itm_' + Date.now(),
+              sku: req.truckNo,
+              name: 'Gypsum Mortar Premix (TLB Bulk)',
+              quantity: req.tlbQuantity,
+              unit: req.uom || 'Bags',
+              weightKg: req.tlbQuantity * 40,
+              unitPrice: 20,
+            },
+          ],
+          totalWeightKg: req.tlbQuantity * 40,
+          totalVolumeCbm: 30,
+          packagesCount: req.tlbQuantity,
+          specialInstructions: req.notes || `Approved Driver Request #${req.requestNumber} for ${req.driverName}`,
+          slipStatus: 'not_submitted',
+        },
+        notes: req.notes
+          ? `[Approved from Driver Request ${req.requestNumber}] ${req.notes}`
+          : `Created from Driver Request ${req.requestNumber}`,
+      };
+
+      setTrips((prev) => [newTrip, ...prev]);
+
+      // Update request status to Approved & Assigned
+      setDriverLoadRequests((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                status: 'Assigned',
+                assignedTripId: newTrip.id,
+                reviewedBy: reviewer,
+                reviewedAt: nowIso,
+                reviewNotes: `Approved and converted to Trip #${nextTripNumber}.`,
+                updatedAt: nowIso,
+              }
+            : r
+        )
+      );
+
+      // Update driver status if needed
+      if (req.driverId) {
+        setDrivers((prev) =>
+          prev.map((d) => (d.id === req.driverId ? { ...d, status: 'loading' } : d))
+        );
+      }
+
+      try {
+        confetti({ particleCount: 70, spread: 75, origin: { y: 0.6 } });
+      } catch {
+        // ignore
+      }
+
+      showToast(
+        language === 'ar' ? 'تمت الموافقة وتعيين الرحلة' : 'Request Approved & Dispatched',
+        language === 'ar'
+          ? `تم إنشاء الرحلة ${nextTripNumber} بنجاح للسائق ${req.driverName}`
+          : `Trip #${nextTripNumber} created and assigned to ${req.driverName}.`,
+        'success'
+      );
+
+      return { success: true, tripId: newTrip.id };
+    } else {
+      // Create Broker Load
+      const newBrokerLoadId = 'brk_' + Date.now();
+      const newDn = `DN-BRK-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      const newBrokerLoad: BrokerLoad = {
+        id: newBrokerLoadId,
+        dnNumber: newDn,
+        slipDate: req.requestDate,
+        brokerName: req.customerCompanyName,
+        materialItem: `Broker Freight (TLB ${req.tlbQuantity} ${req.uom || 'Bags'})`,
+        pickupLocation: req.pickupLocation,
+        dropLocations: [
+          {
+            id: 'drop_' + Date.now(),
+            stopNumber: 1,
+            dropLocation: req.dropLocation,
+            deliveryQty: req.tlbQuantity,
+            unit: req.uom || 'BAG',
+            status: 'Pending',
+            recipientName: req.customerCompanyName,
+            notes: req.notes,
+          },
+        ],
+        assignedDriverId: req.driverId,
+        assignedDriverName: req.driverName,
+        assignedDriverPhone: drivers.find((d) => d.id === req.driverId)?.phone || '',
+        assignedTruckPlate: req.truckNo,
+        assignedTruckTlbNo: req.truckNo,
+        freightAmount: 5200,
+        brokerCommission: 520,
+        loadStatus: 'Assigned',
+        notes: req.notes
+          ? `[Approved from Driver Request ${req.requestNumber}] ${req.notes}`
+          : `Created from Driver Request ${req.requestNumber}`,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      };
+
+      setBrokerLoads((prev) => [newBrokerLoad, ...prev]);
+
+      // Update request status to Approved & Assigned
+      setDriverLoadRequests((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                status: 'Assigned',
+                assignedBrokerLoadId: newBrokerLoadId,
+                reviewedBy: reviewer,
+                reviewedAt: nowIso,
+                reviewNotes: `Approved and converted to Broker Load #${newDn}.`,
+                updatedAt: nowIso,
+              }
+            : r
+        )
+      );
+
+      try {
+        confetti({ particleCount: 70, spread: 75, origin: { y: 0.6 } });
+      } catch {
+        // ignore
+      }
+
+      showToast(
+        language === 'ar' ? 'تمت الموافقة وتعيين حمولة الوسيط' : 'Broker Request Approved',
+        language === 'ar'
+          ? `تم إنشاء حمولة الوسيط ${newDn} وإسنادها للسائق ${req.driverName}`
+          : `Broker Load #${newDn} created and assigned to ${req.driverName}.`,
+        'success'
+      );
+
+      return { success: true, brokerLoadId: newBrokerLoadId };
+    }
+  };
+
+  const rejectDriverLoadRequest = (id: string, reason: string, reviewerName?: string) => {
+    const reviewer = reviewerName || (activeRole.toUpperCase() + ' Dispatcher');
+    const nowIso = new Date().toISOString();
+
+    setDriverLoadRequests((prev) =>
+      prev.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              status: 'Rejected',
+              reviewNotes: reason,
+              reviewedBy: reviewer,
+              reviewedAt: nowIso,
+              updatedAt: nowIso,
+            }
+          : r
+      )
+    );
+
+    showToast(
+      language === 'ar' ? 'تم رفض طلب الحمولة' : 'Load Request Rejected',
+      language === 'ar' ? `سبب الرفض: ${reason}` : `Request rejected: ${reason}`,
+      'warning'
+    );
+  };
+
+  const deleteDriverLoadRequest = (id: string) => {
+    const target = driverLoadRequests.find((r) => r.id === id);
+    setDriverLoadRequests((prev) => prev.filter((r) => r.id !== id));
+    showToast(
+      language === 'ar' ? 'تم حذف الطلب' : 'Request Deleted',
+      target ? `Request ${target.requestNumber} removed.` : 'Request removed.',
+      'info'
+    );
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -6905,6 +7246,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addBrokerDropLocation,
         markBrokerLoadDelivered,
         attachBrokerPdf,
+        driverLoadRequests,
+        addDriverLoadRequest,
+        updateDriverLoadRequestStatus,
+        approveAndConvertDriverLoadRequest,
+        rejectDriverLoadRequest,
+        deleteDriverLoadRequest,
       }}
     >
       {children}

@@ -19,7 +19,8 @@ import {
   GypsumInventoryItem,
   GypsumMovement,
   BrokerLoad,
-  BrokerDropLocation
+  BrokerDropLocation,
+  DriverLoadRequest
 } from './types';
 import { generateTaxInvoiceQrBase64 } from './utils/zatca';
 
@@ -2859,4 +2860,70 @@ export const initialBrokerLoads: BrokerLoad[] = [
     updatedAt: '2026-09-03T09:00:00Z'
   }
 ];
+
+export const initialDriverLoadRequests: DriverLoadRequest[] = [
+  {
+    id: 'req_001',
+    requestNumber: 'REQ-2026-001',
+    requestDate: '2026-09-03',
+    driverId: 'drv_001',
+    driverName: 'Ahmed Al-Harbi',
+    truckNo: '8421-KSA (TLB-4812)',
+    loadType: 'Company Load (TLB)',
+    tlbQuantity: 600,
+    uom: 'Bags',
+    pickupLocation: 'Riyadh Gypsum Plant Silo #2',
+    dropLocation: 'Al-Kharj Industrial Development Project',
+    customerCompanyName: 'Al-Kifah ReadyMix & Contracting',
+    notes: 'Driver ready for early morning dispatch. Silo loading slot booked.',
+    status: 'Pending',
+    createdAt: '2026-09-03T08:30:00Z',
+    updatedAt: '2026-09-03T08:30:00Z'
+  },
+  {
+    id: 'req_002',
+    requestNumber: 'REQ-2026-002',
+    requestDate: '2026-09-02',
+    driverId: 'drv_001',
+    driverName: 'Ahmed Al-Harbi',
+    truckNo: '8421-KSA (TLB-4812)',
+    loadType: 'Broker Load',
+    tlbQuantity: 450,
+    uom: 'Bags',
+    pickupLocation: 'Jeddah Port Container Logistics Gate 5',
+    dropLocation: 'Mecca Al-Shawqiyah Commercial Center',
+    customerCompanyName: 'Al-Safwa Logistics Broker',
+    notes: 'Multi-stop retail drop authorized by dispatcher.',
+    status: 'Approved',
+    createdAt: '2026-09-02T10:15:00Z',
+    updatedAt: '2026-09-02T11:00:00Z',
+    reviewedBy: 'Tariq Al-Amri (Dispatcher)',
+    reviewedAt: '2026-09-02T11:00:00Z',
+    reviewNotes: 'Approved. Proceed to pickup zone after morning fuel check.',
+    assignedBrokerLoadId: 'brk_002'
+  },
+  {
+    id: 'req_003',
+    requestNumber: 'REQ-2026-003',
+    requestDate: '2026-09-01',
+    driverId: 'drv_002',
+    driverName: 'Mohammed Al-Shehri',
+    truckNo: '3109-KSA (TLB-5011)',
+    loadType: 'Company Load (TLB)',
+    tlbQuantity: 700,
+    uom: 'Bags',
+    pickupLocation: 'Dammam Port Bulk Gypsum Silos',
+    dropLocation: 'Jubail Industrial Park Sector 4',
+    customerCompanyName: 'Saudi Oger Precast Division',
+    notes: 'Urgent cementitious mix consignment.',
+    status: 'Assigned',
+    createdAt: '2026-09-01T09:00:00Z',
+    updatedAt: '2026-09-01T09:45:00Z',
+    reviewedBy: 'Khalid Mansour (Dispatcher)',
+    reviewedAt: '2026-09-01T09:45:00Z',
+    reviewNotes: 'Assigned and converted to Trip TRP-2026-1042.',
+    assignedTripId: 'trp_002'
+  }
+];
+
 

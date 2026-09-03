@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Trip, TripStep, SlipStatus, DriverStatus, BrokerLoad, BrokerDropLocation } from '../types';
 import { BrokerMarkDropModal } from '../components/BrokerMarkDropModal';
 import { BrokerPdfViewModal } from '../components/BrokerPdfViewModal';
+import { DriverLoadRequestSection } from '../components/DriverLoadRequestSection';
 import { formatCurrency } from '../utils/i18n';
 import {
   Truck,
@@ -43,7 +44,9 @@ import {
   FileCheck2,
   Scale,
   ExternalLink,
-  ChevronDown
+  ChevronDown,
+  Send,
+  PlusCircle,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -74,12 +77,13 @@ export const DriverPanelView: React.FC = () => {
     brokerLoads,
     updateBrokerDropStatus,
     markBrokerLoadDelivered,
+    driverLoadRequests,
   } = useApp();
 
   const isAr = language === 'ar';
 
   // Navigation tab state inside Driver Panel
-  const [activeTab, setActiveTab] = useState<'active_trip' | 'assigned_loads' | 'broker_loads' | 'route_map' | 'reconciliation' | 'history'>('active_trip');
+  const [activeTab, setActiveTab] = useState<'active_trip' | 'assigned_loads' | 'broker_loads' | 'request_load' | 'route_map' | 'reconciliation' | 'history'>('active_trip');
 
   // Broker loads state for driver
   const [showAllBrokerLoads, setShowAllBrokerLoads] = useState<boolean>(false);
@@ -131,6 +135,15 @@ export const DriverPanelView: React.FC = () => {
   );
 
   const displayedBrokerLoads = showAllBrokerLoads ? brokerLoads : driverBrokerLoads;
+
+  // Driver load requests
+  const myLoadRequests = driverLoadRequests.filter(
+    (r) =>
+      r.driverId === activeDriver.id ||
+      (r.driverName && r.driverName.toLowerCase().includes(activeDriver.name.toLowerCase().split(' ')[0])) ||
+      (r.truckNo && activeDriver.assignedVehiclePlate && r.truckNo.includes(activeDriver.assignedVehiclePlate.split(' ')[0]))
+  );
+  const pendingRequestsCount = myLoadRequests.filter((r) => r.status === 'Pending').length;
 
   // Active in-progress trip (either loading, on_route, or recently delivered)
   const activeTrip =
@@ -609,6 +622,19 @@ export const DriverPanelView: React.FC = () => {
               <span>DN / SO Barcode Scan</span>
             </button>
             <button
+              id="driver-quick-request-load-btn"
+              onClick={() => setActiveTab('request_load')}
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Request Load (طلب حمولة)</span>
+              {pendingRequestsCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-mono text-[10px] font-bold">
+                  {pendingRequestsCount}
+                </span>
+              )}
+            </button>
+            <button
               id="driver-quick-expense-btn"
               onClick={() => setIsExpenseOpen(true)}
               className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95"
@@ -624,7 +650,7 @@ export const DriverPanelView: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. NAVIGATION TABS (Active Workflow, Assigned Loads, Route Map, Reconciliation, History) */}
+      {/* 2. NAVIGATION TABS (Active Workflow, Assigned Loads, Broker Loads, Request Load, Route Map, Reconciliation, History) */}
       <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto custom-scrollbar">
         <button
           id="tab-active-trip"
@@ -638,6 +664,24 @@ export const DriverPanelView: React.FC = () => {
           <Truck className="w-4 h-4" />
           <span>Active Trip Workflow (مراحل الرحلة)</span>
           {activeTrip && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
+        </button>
+
+        <button
+          id="tab-request-load"
+          onClick={() => setActiveTab('request_load')}
+          className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'request_load'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
+              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Send className="w-4 h-4" />
+          <span>Request Load ({myLoadRequests.length})</span>
+          {pendingRequestsCount > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-400 text-slate-950 font-black animate-pulse">
+              {pendingRequestsCount} PENDING
+            </span>
+          )}
         </button>
 
         <button
@@ -1636,6 +1680,11 @@ export const DriverPanelView: React.FC = () => {
             </div>
           )}
         </div>
+      )}
+
+      {/* TAB CONTENT: REQUEST LOAD (Broker Load / Company Load TLB) */}
+      {activeTab === 'request_load' && (
+        <DriverLoadRequestSection onNavigateToTab={(tab) => setActiveTab(tab)} />
       )}
 
       {/* 5. TAB CONTENT 3: ROUTE & ROUTE SHIFT */}

@@ -32,7 +32,9 @@ import {
   PackageCheck,
   Shuffle,
   Edit3,
-  Trash2
+  Trash2,
+  Inbox,
+  Send,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { NewCompanyLoadModal } from '../components/NewCompanyLoadModal';
@@ -41,6 +43,7 @@ import { RouteShiftModal } from '../components/RouteShiftModal';
 import { ManagerTripControlModal } from '../components/ManagerTripControlModal';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 import { BrokerLoadManagement } from '../components/BrokerLoadManagement';
+import { DispatcherDriverRequestsTable } from '../components/DispatcherDriverRequestsTable';
 
 interface DispatcherViewProps {
   onOpenNewTripModal: () => void;
@@ -70,12 +73,16 @@ export const DispatcherView: React.FC<DispatcherViewProps> = ({
     showToast,
     language,
     brokerLoads,
+    driverLoadRequests,
   } = useApp();
 
   const isAr = language === 'ar';
 
-  // Section view: Standard Plant Loads vs Broker Load Management
-  const [dispatcherViewMode, setDispatcherViewMode] = useState<'standard_trips' | 'broker_loads'>('standard_trips');
+  // Section view: Standard Plant Loads vs Broker Load Management vs Driver Load Requests
+  const [dispatcherViewMode, setDispatcherViewMode] = useState<'standard_trips' | 'broker_loads' | 'driver_requests'>('standard_trips');
+
+  // Pending Driver Requests KPI
+  const pendingDriverRequestsCount = driverLoadRequests.filter((r) => r.status === 'Pending').length;
 
   // Filters & State
   const [activeTab, setActiveTab] = useState<'all' | 'pending_slips' | 'today_trips' | 'loading' | 'on_route' | 'delivered'>('all');
@@ -155,8 +162,26 @@ export const DispatcherView: React.FC<DispatcherViewProps> = ({
           </p>
         </div>
 
-        {/* Action Buttons: [ + Company Load ] [ + Upload PDF ] [ Scan DN ] [ Manual Add ] */}
+        {/* Action Buttons: [ Driver Requests ] [ Broker Loads ] [ + Company Load ] [ + Upload PDF ] [ Scan DN ] [ Manual Add ] */}
         <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            id="dispatcher-driver-requests-btn"
+            onClick={() => setDispatcherViewMode('driver_requests')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 shadow-lg transition-all transform active:scale-95 cursor-pointer ${
+              dispatcherViewMode === 'driver_requests'
+                ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-indigo-600/25 ring-2 ring-indigo-400'
+                : 'bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 border border-indigo-700/50'
+            }`}
+          >
+            <Inbox className="w-4 h-4 text-white" />
+            <span>📥 Driver Requests ({driverLoadRequests.length})</span>
+            {pendingDriverRequestsCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-mono text-[10px] font-black animate-pulse">
+                {pendingDriverRequestsCount}
+              </span>
+            )}
+          </button>
+
           <button
             id="dispatcher-broker-loads-btn"
             onClick={() => setDispatcherViewMode('broker_loads')}
@@ -208,12 +233,12 @@ export const DispatcherView: React.FC<DispatcherViewProps> = ({
         </div>
       </div>
 
-      {/* Primary Section Switcher: Standard Plant Loads vs Broker Load Management */}
-      <div className="flex items-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl w-full sm:w-auto self-start border border-slate-200 dark:border-slate-700/80">
+      {/* Primary Section Switcher: Standard Plant Loads vs Broker Load Management vs Driver Load Requests */}
+      <div className="flex items-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl w-full sm:w-auto self-start border border-slate-200 dark:border-slate-700/80 overflow-x-auto custom-scrollbar">
         <button
           id="switch-standard-trips-btn"
           onClick={() => setDispatcherViewMode('standard_trips')}
-          className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+          className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
             dispatcherViewMode === 'standard_trips'
               ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-md'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -224,9 +249,27 @@ export const DispatcherView: React.FC<DispatcherViewProps> = ({
         </button>
 
         <button
+          id="switch-driver-requests-btn"
+          onClick={() => setDispatcherViewMode('driver_requests')}
+          className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+            dispatcherViewMode === 'driver_requests'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Inbox className="w-4 h-4" />
+          <span>📥 Driver Load Requests ({driverLoadRequests.length})</span>
+          {pendingDriverRequestsCount > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-400 text-slate-950 font-black animate-pulse">
+              {pendingDriverRequestsCount} PENDING
+            </span>
+          )}
+        </button>
+
+        <button
           id="switch-broker-loads-btn"
           onClick={() => setDispatcherViewMode('broker_loads')}
-          className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+          className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
             dispatcherViewMode === 'broker_loads'
               ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -237,7 +280,12 @@ export const DispatcherView: React.FC<DispatcherViewProps> = ({
         </button>
       </div>
 
-      {dispatcherViewMode === 'broker_loads' ? (
+      {dispatcherViewMode === 'driver_requests' ? (
+        <DispatcherDriverRequestsTable
+          onNavigateToTrips={() => setDispatcherViewMode('standard_trips')}
+          onNavigateToBrokerLoads={() => setDispatcherViewMode('broker_loads')}
+        />
+      ) : dispatcherViewMode === 'broker_loads' ? (
         <BrokerLoadManagement onNavigateToDriverPanel={() => setCurrentView('driverPanel')} />
       ) : (
         <>
