@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Driver, Vehicle, DriverStatus } from '../types';
+import { Driver, Vehicle, DriverStatus, DriverDocumentInfo, DocumentExpiryStatus } from '../types';
 import { formatCurrency } from '../utils/i18n';
+import { calculateDocumentExpiryStatus } from '../utils/supabaseStorage';
+import { DriverFormModal } from '../components/DriverFormModal';
+import { DriverDocumentPreviewModal } from '../components/DriverDocumentPreviewModal';
 import {
   Users,
   Truck,
@@ -13,60 +16,104 @@ import {
   Calendar,
   AlertTriangle,
   CheckCircle2,
+  XCircle,
   DollarSign,
   Fuel,
   Gauge,
   Thermometer,
-  Wrench
+  Wrench,
+  Edit3,
+  FileText,
+  ShieldCheck,
+  HardDrive
 } from 'lucide-react';
 
 export const DriversFleetView: React.FC = () => {
   const { drivers, vehicles, addDriver, addVehicle, updateDriver, updateVehicle, showToast } = useApp();
   const [activeTab, setActiveTab] = useState<'drivers' | 'fleet'>('drivers');
-  const [showAddDriverModal, setShowAddDriverModal] = useState(false);
-  const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
 
-  // New Driver Form State
-  const [newDriverName, setNewDriverName] = useState('');
-  const [newDriverPhone, setNewDriverPhone] = useState('');
-  const [newDriverIqama, setNewDriverIqama] = useState('');
-  const [newDriverCategory, setNewDriverCategory] = useState('Heavy Vehicle / Trailer (نقل ثقيل)');
-  const [newDriverSalary, setNewDriverSalary] = useState(6000);
+  // Driver Form Modal State (Add & Edit)
+  const [showDriverModal, setShowDriverModal] = useState(false);
+  const [driverToEdit, setDriverToEdit] = useState<Driver | null>(null);
+
+  // Document Preview Modal State
+  const [previewDoc, setPreviewDoc] = useState<DriverDocumentInfo | null>(null);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewDriverName, setPreviewDriverName] = useState('');
+  const [previewExpiryStatus, setPreviewExpiryStatus] = useState<DocumentExpiryStatus | undefined>(undefined);
+  const [previewExpiryDate, setPreviewExpiryDate] = useState<string | undefined>(undefined);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   // New Vehicle Form State
+  const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
   const [newVehPlate, setNewVehPlate] = useState('');
   const [newVehModel, setNewVehModel] = useState('');
   const [newVehType, setNewVehType] = useState<any>('trailer_30t');
   const [newVehCapacity, setNewVehCapacity] = useState(30);
 
-  const handleCreateDriver = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newDriverName.trim() || !newDriverPhone.trim()) {
-      showToast('Missing Fields', 'Please provide driver name and contact phone.', 'warning');
-      return;
+  const handleOpenAddDriver = () => {
+    setDriverToEdit(null);
+    setShowDriverModal(true);
+  };
+
+  const handleOpenEditDriver = (driver: Driver) => {
+    setDriverToEdit(driver);
+    setShowDriverModal(true);
+  };
+
+  const handleSaveDriver = (driverData: Partial<Driver>) => {
+    if (driverToEdit) {
+      updateDriver(driverToEdit.id, driverData);
+    } else {
+      addDriver({
+        name: driverData.name || 'New Driver',
+        nameAr: driverData.nameAr || driverData.name || 'سائق جديد',
+        employeeId: driverData.employeeId,
+        phone: driverData.phone || '+966 50 000 0000',
+        email: `${(driverData.name || 'driver').toLowerCase().replace(/\s+/g, '.')}@logiflow.sa`,
+        nationalIdOrIqama: driverData.nationalIdOrIqama || '1098472910',
+        assignedVehiclePlate: driverData.assignedVehiclePlate,
+        assignedVehicleId: driverData.assignedVehicleId,
+        iqamaIssueDate: driverData.iqamaIssueDate,
+        iqamaExpiryDate: driverData.iqamaExpiryDate,
+        iqamaStatus: driverData.iqamaStatus,
+        iqamaDocument: driverData.iqamaDocument,
+        licenseNumber: driverData.licenseNumber || `DL-SA-${Math.floor(10000 + Math.random() * 90000)}`,
+        licenseIssueDate: driverData.licenseIssueDate,
+        licenseExpiry: driverData.licenseExpiry || '2028-12-31',
+        rukhsaIssueDate: driverData.rukhsaIssueDate,
+        rukhsaExpiryDate: driverData.rukhsaExpiryDate,
+        rukhsaStatus: driverData.rukhsaStatus,
+        rukhsaDocument: driverData.rukhsaDocument,
+        licenseCategory: driverData.licenseCategory || 'Heavy Vehicle / Trailer (نقل ثقيل)',
+        avatarUrl:
+          driverData.avatarUrl ||
+          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        status: 'available',
+        baseSalary: Number(driverData.baseSalary) || 6000,
+        tripAllowanceRate: 200,
+        rating: 4.85,
+        totalTripsCompleted: 0,
+        safetyScore: 98,
+        joinedDate: new Date().toISOString().split('T')[0],
+        emergencyContact: '+966 50 111 2233',
+      });
     }
-    addDriver({
-      name: newDriverName.trim(),
-      nameAr: newDriverName.trim(),
-      phone: newDriverPhone.trim(),
-      email: `${newDriverName.toLowerCase().replace(/\s+/g, '.')}@logiflow.sa`,
-      nationalIdOrIqama: newDriverIqama || '1098472910',
-      licenseNumber: `DL-SA-${Math.floor(10000 + Math.random() * 90000)}`,
-      licenseExpiry: '2028-12-31',
-      licenseCategory: newDriverCategory,
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-      status: 'available',
-      baseSalary: Number(newDriverSalary),
-      tripAllowanceRate: 200,
-      rating: 4.8,
-      totalTripsCompleted: 0,
-      safetyScore: 98,
-      joinedDate: new Date().toISOString().split('T')[0],
-      emergencyContact: '+966 50 111 2233',
-    });
-    setShowAddDriverModal(false);
-    setNewDriverName('');
-    setNewDriverPhone('');
+  };
+
+  const handlePreviewDocument = (
+    doc: DriverDocumentInfo,
+    title: string,
+    driverName: string,
+    expiryStatus?: DocumentExpiryStatus,
+    expiryDate?: string
+  ) => {
+    setPreviewDoc(doc);
+    setPreviewTitle(title);
+    setPreviewDriverName(driverName);
+    setPreviewExpiryStatus(expiryStatus);
+    setPreviewExpiryDate(expiryDate);
+    setShowPreviewModal(true);
   };
 
   const handleCreateVehicle = (e: React.FormEvent) => {
@@ -137,7 +184,7 @@ export const DriversFleetView: React.FC = () => {
           </div>
 
           <button
-            onClick={() => (activeTab === 'drivers' ? setShowAddDriverModal(true) : setShowAddVehicleModal(true))}
+            onClick={() => (activeTab === 'drivers' ? handleOpenAddDriver() : setShowAddVehicleModal(true))}
             className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -149,86 +196,227 @@ export const DriversFleetView: React.FC = () => {
       {/* Tab 1: Drivers Roster */}
       {activeTab === 'drivers' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {drivers.map((driver) => (
-            <div
-              key={driver.id}
-              className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4"
-            >
-              <div className="flex items-start gap-3.5">
-                <img
-                  src={driver.avatarUrl}
-                  alt={driver.name}
-                  className="w-13 h-13 rounded-2xl object-cover ring-2 ring-slate-100 dark:ring-slate-800"
-                />
-                <div className="flex-1 min-w-0">
+          {drivers.map((driver) => {
+            const iqamaStatus = calculateDocumentExpiryStatus(driver.iqamaExpiryDate);
+            const rukhsaExpiry = driver.rukhsaExpiryDate || driver.licenseExpiry;
+            const rukhsaStatus = calculateDocumentExpiryStatus(rukhsaExpiry);
+
+            return (
+              <div
+                key={driver.id}
+                className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all"
+              >
+                {/* Driver Identity Header */}
+                <div className="flex items-start gap-3.5">
+                  <img
+                    src={driver.avatarUrl}
+                    alt={driver.name}
+                    className="w-13 h-13 rounded-2xl object-cover ring-2 ring-slate-100 dark:ring-slate-800 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <h3 className="font-bold text-slate-900 dark:text-white truncate text-sm">{driver.name}</h3>
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase shrink-0 ${
+                          driver.status === 'available'
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                            : driver.status === 'on_route'
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                            : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                        }`}
+                      >
+                        {driver.status.replace('_', ' ')}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-1 mt-0.5">
+                      <p className="text-xs text-slate-500 font-arabic truncate">{driver.nameAr}</p>
+                      {driver.employeeId && (
+                        <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          {driver.employeeId}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-[11px] text-slate-400 mt-1 font-mono truncate">
+                      Iqama/ID: {driver.nationalIdOrIqama}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Key Assignment & License Details */}
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-xs space-y-2">
+                  {/* Truck Assignment */}
                   <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-slate-900 dark:text-white truncate">{driver.name}</h3>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                        driver.status === 'available'
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                          : driver.status === 'on_route'
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                          : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                      }`}
-                    >
-                      {driver.status.replace('_', ' ')}
+                    <span className="text-slate-500 flex items-center gap-1.5">
+                      <Truck className="w-3.5 h-3.5 text-blue-500" /> Assigned Truck:
+                    </span>
+                    {driver.assignedVehiclePlate ? (
+                      <span className="font-mono font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-900/60">
+                        {driver.assignedVehiclePlate}
+                      </span>
+                    ) : (
+                      <span className="font-mono text-slate-400 italic text-[11px]">Unassigned</span>
+                    )}
+                  </div>
+
+                  {/* Iqama Status & Preview */}
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
+                    <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                      <span className="font-semibold">Iqama:</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {driver.iqamaExpiryDate ? (
+                        <>
+                          {iqamaStatus.status === 'valid' && (
+                            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                              <CheckCircle2 className="w-2.5 h-2.5" /> Valid
+                            </span>
+                          )}
+                          {iqamaStatus.status === 'expiring_soon' && (
+                            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+                              <AlertTriangle className="w-2.5 h-2.5" /> Expiring Soon
+                            </span>
+                          )}
+                          {iqamaStatus.status === 'expired' && (
+                            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-800 flex items-center gap-1">
+                              <XCircle className="w-2.5 h-2.5" /> Expired
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-mono">No Date</span>
+                      )}
+
+                      {driver.iqamaDocument && (
+                        <button
+                          onClick={() =>
+                            handlePreviewDocument(
+                              driver.iqamaDocument!,
+                              'Iqama Document',
+                              driver.name,
+                              iqamaStatus.status,
+                              driver.iqamaExpiryDate
+                            )
+                          }
+                          className="p-1 rounded-md text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/60 transition-all cursor-pointer"
+                          title="View Iqama Document in Supabase Storage"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Rukhsa (Licence) Status & Preview */}
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
+                    <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
+                      <Shield className="w-3.5 h-3.5 text-blue-500" />
+                      <span className="font-semibold">Rukhsa:</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {rukhsaExpiry ? (
+                        <>
+                          {rukhsaStatus.status === 'valid' && (
+                            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                              <CheckCircle2 className="w-2.5 h-2.5" /> Valid
+                            </span>
+                          )}
+                          {rukhsaStatus.status === 'expiring_soon' && (
+                            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+                              <AlertTriangle className="w-2.5 h-2.5" /> Expiring Soon
+                            </span>
+                          )}
+                          {rukhsaStatus.status === 'expired' && (
+                            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-800 flex items-center gap-1">
+                              <XCircle className="w-2.5 h-2.5" /> Expired
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-mono">No Date</span>
+                      )}
+
+                      {driver.rukhsaDocument && (
+                        <button
+                          onClick={() =>
+                            handlePreviewDocument(
+                              driver.rukhsaDocument!,
+                              'Rukhsa (Driving Licence)',
+                              driver.name,
+                              rukhsaStatus.status,
+                              rukhsaExpiry
+                            )
+                          }
+                          className="p-1 rounded-md text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition-all cursor-pointer"
+                          title="View Rukhsa Document in Supabase Storage"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* License Category & Completed Trips */}
+                  <div className="flex justify-between pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
+                    <span className="text-slate-500">Category:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[170px]">
+                      {driver.licenseCategory}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 font-arabic">{driver.nameAr}</p>
-                  <div className="text-[11px] text-slate-400 mt-1 font-mono">
-                    Iqama/ID: {driver.nationalIdOrIqama}
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-xs space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">License Category:</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[170px]">
-                    {driver.licenseCategory}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Assigned Truck:</span>
-                  <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
-                    {driver.assignedVehiclePlate || 'None'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Completed Trips:</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{driver.totalTripsCompleted}</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-xs pt-1">
-                <div className="p-2 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 flex items-center gap-2">
-                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                  <div>
-                    <div className="font-bold text-amber-900 dark:text-amber-200">{driver.rating} / 5.0</div>
-                    <span className="text-[10px] text-slate-400">Rating</span>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Completed Trips:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{driver.totalTripsCompleted}</span>
                   </div>
                 </div>
 
-                <div className="p-2 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-emerald-600" />
-                  <div>
-                    <div className="font-bold text-emerald-900 dark:text-emerald-200">{driver.safetyScore}%</div>
-                    <span className="text-[10px] text-slate-400">Safety Index</span>
+                {/* Rating & Safety Index */}
+                <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                  <div className="p-2 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 flex items-center gap-2">
+                    <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                    <div>
+                      <div className="font-bold text-amber-900 dark:text-amber-200">{driver.rating} / 5.0</div>
+                      <span className="text-[10px] text-slate-400">Rating</span>
+                    </div>
+                  </div>
+
+                  <div className="p-2 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-emerald-600" />
+                    <div>
+                      <div className="font-bold text-emerald-900 dark:text-emerald-200">{driver.safetyScore}%</div>
+                      <span className="text-[10px] text-slate-400">Safety Index</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card Footer: Phone, Salary & Edit Button */}
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 gap-2">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <Phone className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{driver.phone}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                      {formatCurrency(driver.baseSalary)}/mo
+                    </span>
+
+                    <button
+                      onClick={() => handleOpenEditDriver(driver)}
+                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-950/60 text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-all cursor-pointer flex items-center gap-1 text-[11px] font-bold"
+                      title="Edit Driver, Assigned Truck, Dates & Documents"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit</span>
+                    </button>
                   </div>
                 </div>
               </div>
-
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
-                <span className="flex items-center gap-1">
-                  <Phone className="w-3.5 h-3.5" /> {driver.phone}
-                </span>
-                <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
-                  {formatCurrency(driver.baseSalary)} /mo
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -317,86 +505,33 @@ export const DriversFleetView: React.FC = () => {
         </div>
       )}
 
-      {/* Modal: Add Driver */}
-      {showAddDriverModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 space-y-4 border border-slate-200 dark:border-slate-800 shadow-2xl">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Register New Fleet Driver</h3>
-            <form onSubmit={handleCreateDriver} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold mb-1">Driver Full Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Khalid Al-Zahrani"
-                  value={newDriverName}
-                  onChange={(e) => setNewDriverName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
-                />
-              </div>
-              <div>
-                <label className="block font-bold mb-1">Mobile Phone (KSA)</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="+966 50 ..."
-                  value={newDriverPhone}
-                  onChange={(e) => setNewDriverPhone(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
-                />
-              </div>
-              <div>
-                <label className="block font-bold mb-1">National ID / Iqama Number</label>
-                <input
-                  type="text"
-                  placeholder="10-digit ID..."
-                  value={newDriverIqama}
-                  onChange={(e) => setNewDriverIqama(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono"
-                />
-              </div>
-              <div>
-                <label className="block font-bold mb-1">License Category</label>
-                <select
-                  value={newDriverCategory}
-                  onChange={(e) => setNewDriverCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
-                >
-                  <option>Heavy Vehicle / Trailer (نقل ثقيل)</option>
-                  <option>Reefer / Cold Chain Specialist (نقل مبرد)</option>
-                  <option>Medium Dyna Transport (نقل متوسط)</option>
-                  <option>Light Box Van (توزيع خفيف)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block font-bold mb-1">Monthly Base Salary (SAR)</label>
-                <input
-                  type="number"
-                  value={newDriverSalary}
-                  onChange={(e) => setNewDriverSalary(Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono"
-                />
-              </div>
+      {/* Driver Form Modal (Add & Edit Driver with Truck Assignment & Supabase Documents) */}
+      <DriverFormModal
+        isOpen={showDriverModal}
+        onClose={() => {
+          setShowDriverModal(false);
+          setDriverToEdit(null);
+        }}
+        driverToEdit={driverToEdit}
+        vehicles={vehicles}
+        existingDriversCount={drivers.length}
+        onSave={handleSaveDriver}
+        onPreviewDocument={handlePreviewDocument}
+      />
 
-              <div className="flex justify-end gap-2 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowAddDriverModal(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                >
-                  Add Driver
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Driver Document Preview Modal (Iqama & Rukhsa PDF/Image viewer) */}
+      <DriverDocumentPreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => {
+          setShowPreviewModal(false);
+          setPreviewDoc(null);
+        }}
+        document={previewDoc}
+        title={previewTitle}
+        driverName={previewDriverName}
+        expiryStatus={previewExpiryStatus}
+        expiryDate={previewExpiryDate}
+      />
 
       {/* Modal: Add Vehicle */}
       {showAddVehicleModal && (

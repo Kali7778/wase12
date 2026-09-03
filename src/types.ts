@@ -292,20 +292,50 @@ export interface RouteShiftRecord {
   auditHash: string; // SHA-256 seal
 }
 
+export type DocumentExpiryStatus = 'valid' | 'expiring_soon' | 'expired';
+
+export interface DriverDocumentInfo {
+  storagePath?: string; // Supabase Storage relative path, e.g. "driver-documents/iqama/drv_1.pdf"
+  publicUrl?: string;   // Supabase Storage URL
+  fileName: string;
+  fileType: 'pdf' | 'image';
+  fileSize?: number;
+  fileDataUrl?: string; // Base64 data URL for offline rendering and instant preview
+  uploadedAt?: string;
+  bucket?: string;      // default: "driver-documents"
+}
+
 export interface Driver {
   id: string;
+  employeeId?: string; // Driver ID / Employee ID e.g. "DRV-101"
   name: string;
   nameAr: string;
   phone: string;
   email: string;
   nationalIdOrIqama: string;
-  licenseNumber: string;
-  licenseExpiry: string;
-  licenseCategory: string;
-  avatarUrl: string;
-  status: DriverStatus;
+
+  // Truck Assignment
   assignedVehiclePlate?: string;
   assignedVehicleId?: string;
+
+  // Iqama
+  iqamaIssueDate?: string;
+  iqamaExpiryDate?: string;
+  iqamaDocument?: DriverDocumentInfo;
+  iqamaStatus?: DocumentExpiryStatus;
+
+  // Rukhsa (Driving Licence)
+  licenseNumber: string;
+  licenseCategory: string;
+  licenseIssueDate?: string;
+  licenseExpiry: string; // Expiry date
+  rukhsaIssueDate?: string; // Alias for licenseIssueDate
+  rukhsaExpiryDate?: string; // Alias for licenseExpiry
+  rukhsaDocument?: DriverDocumentInfo;
+  rukhsaStatus?: DocumentExpiryStatus;
+
+  avatarUrl: string;
+  status: DriverStatus;
   baseSalary: number;
   tripAllowanceRate: number;
   rating: number;

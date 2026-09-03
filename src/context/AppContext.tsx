@@ -3073,16 +3073,59 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       id: 'drv_' + Date.now(),
     };
     setDrivers((prev) => [newDriver, ...prev]);
-    showToast('Driver Enrolled', `${newDriver.name} added to driver roster.`, 'success');
+
+    // Synchronize truck assignment across fleet vehicles
+    if (newDriver.assignedVehiclePlate) {
+      setVehicles((prev) =>
+        prev.map((v) =>
+          v.plateNumber === newDriver.assignedVehiclePlate || v.id === newDriver.assignedVehicleId
+            ? { ...v, assignedDriverName: newDriver.name }
+            : v
+        )
+      );
+    }
+
+    showToast('Driver Enrolled', `${newDriver.name} added to driver roster with truck assignment.`, 'success');
   };
 
   const updateDriver = (id: string, updates: Partial<Driver>) => {
-    if (activeRole !== 'admin') {
-      showToast('Access Denied', 'Only Admin users are authorized to edit driver profiles.', 'error');
+    const authorizedRoles: UserRole[] = ['admin', 'manager', 'gm', 'ceo', 'dispatcher'];
+    if (!authorizedRoles.includes(activeRole)) {
+      showToast('Access Denied', 'Only Admin and Operations Managers are authorized to edit driver profiles.', 'error');
       return;
     }
-    setDrivers((prev) => prev.map((d) => (d.id === id ? { ...d, ...updates } : d)));
-    showToast('Driver Profile Updated', 'Saved driver information.', 'info');
+
+    let targetDriverName = '';
+    setDrivers((prev) =>
+      prev.map((d) => {
+        if (d.id === id) {
+          const updated = { ...d, ...updates };
+          targetDriverName = updated.name;
+          return updated;
+        }
+        return d;
+      })
+    );
+
+    // Synchronize truck assignment across fleet vehicles
+    if (updates.assignedVehiclePlate !== undefined) {
+      const newPlate = updates.assignedVehiclePlate;
+      setVehicles((prev) =>
+        prev.map((v) => {
+          // If this vehicle is newly assigned to this driver
+          if (newPlate && (v.plateNumber === newPlate || v.id === updates.assignedVehicleId)) {
+            return { ...v, assignedDriverName: updates.name || targetDriverName };
+          }
+          // If this vehicle was previously assigned to this driver and is now unassigned
+          if (targetDriverName && v.assignedDriverName === targetDriverName && (!newPlate || v.plateNumber !== newPlate)) {
+            return { ...v, assignedDriverName: undefined };
+          }
+          return v;
+        })
+      );
+    }
+
+    showToast('Driver Profile Updated', 'Saved driver information, dates & truck assignment.', 'info');
   };
 
   // VEHICLES ACTIONS
