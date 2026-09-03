@@ -1,0 +1,6 @@
+{
+  "name": "LogiFlow Admin Panel",
+  "description": "Enterprise logistics fleet dispatch, TLB/TLB SP bulk inventory silos, CEO/GM/Manager hierarchy panels, tamper-proof Master-Level Audit trail with SHA-256 seal, multi-tier approvals, AI delivery note intake, ZATCA Phase 1 & 2 E-Invoicing with TLV QR Scanner, Expenses & Driver Payroll, and standard tax invoicing.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
