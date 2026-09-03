@@ -17,7 +17,9 @@ import {
   MasterAuditRecord,
   ApprovalRequest,
   GypsumInventoryItem,
-  GypsumMovement
+  GypsumMovement,
+  BrokerLoad,
+  BrokerDropLocation
 } from './types';
 import { generateTaxInvoiceQrBase64 } from './utils/zatca';
 
@@ -2659,6 +2661,202 @@ export const initialCustomerInvoices = [
     pickupLocation: 'Jeddah North Warehouse',
     dropLocation: 'Makkah Supercenter',
     createdAt: '2026-08-15T08:45:00Z',
+  }
+];
+
+export const initialBrokerLoads: BrokerLoad[] = [
+  {
+    id: 'brk_001',
+    dnNumber: 'DN-BRK-8921',
+    slipDate: '2026-09-02',
+    brokerName: 'Al-Futtaim Freight Brokers',
+    materialItem: 'Gypsum Board 12.5mm Standard (Palletized)',
+    pickupLocation: 'Yanbu Industrial Terminal (Bay 3)',
+    dropLocations: [
+      {
+        id: 'drop_101',
+        stopNumber: 1,
+        dropLocation: 'Riyadh Al-Sulay Logistics Depot (Gate 4)',
+        deliveryQty: 350,
+        unit: 'BAG',
+        status: 'Delivered',
+        deliveredAt: '2026-09-03 08:30',
+        recipientName: 'Hassan Al-Otaibi',
+        recipientPhone: '+966 50 443 2190',
+        notes: '350 bags received and inspected. Clear of defects.'
+      },
+      {
+        id: 'drop_102',
+        stopNumber: 2,
+        dropLocation: 'Riyadh Exit 14 Construction Site B',
+        deliveryQty: 250,
+        unit: 'BAG',
+        status: 'In Transit',
+        recipientName: 'Eng. Fahad Al-Dossari',
+        recipientPhone: '+966 54 887 1234',
+        notes: 'Truck approaching off-ramp; crane on standby.'
+      },
+      {
+        id: 'drop_103',
+        stopNumber: 3,
+        dropLocation: 'Al-Kharj Industrial Supply Center',
+        deliveryQty: 200,
+        unit: 'BAG',
+        status: 'Pending',
+        recipientName: 'Mustafa Al-Badr',
+        recipientPhone: '+966 56 123 9988',
+        notes: 'Final drop. Estimated delivery 17:00.'
+      }
+    ],
+    assignedDriverId: 'drv_1',
+    assignedDriverName: 'Ahmed Al-Ghamdi',
+    assignedDriverPhone: '+966 50 123 4567',
+    assignedTruckPlate: 'T-101',
+    assignedTruckTlbNo: 'TLB-91042',
+    freightAmount: 4800,
+    brokerCommission: 480,
+    loadStatus: 'In Transit',
+    notes: 'Urgent multi-drop drywall consignment. Handle with edge protectors.',
+    attachedPdfName: 'DN-BRK-8921_Consignment_Slip.pdf',
+    createdAt: '2026-09-02T10:00:00Z',
+    updatedAt: '2026-09-03T08:35:00Z'
+  },
+  {
+    id: 'brk_002',
+    dnNumber: 'DN-BRK-9045',
+    slipDate: '2026-09-03',
+    brokerName: 'Gulf Express Logistics Broker',
+    materialItem: 'Bulk White Cement Bags (50kg)',
+    pickupLocation: 'Rabigh Cement Plant Terminal Silo 2',
+    dropLocations: [
+      {
+        id: 'drop_201',
+        stopNumber: 1,
+        dropLocation: 'Jeddah South Industrial Park Hub 1',
+        deliveryQty: 400,
+        unit: 'BAG',
+        status: 'Pending',
+        recipientName: 'Sultan Al-Amri',
+        recipientPhone: '+966 53 776 5432',
+        notes: 'Forklift driver confirmed for unloading.'
+      },
+      {
+        id: 'drop_202',
+        stopNumber: 2,
+        dropLocation: 'Makkah Ring Road Project Yard',
+        deliveryQty: 350,
+        unit: 'BAG',
+        status: 'Pending',
+        recipientName: 'Saleh Al-Ghamdi',
+        recipientPhone: '+966 55 332 1144',
+        notes: 'Requires Makkah truck permit verification.'
+      }
+    ],
+    assignedDriverId: 'drv_2',
+    assignedDriverName: 'Khalid Al-Harbi',
+    assignedDriverPhone: '+966 55 987 6543',
+    assignedTruckPlate: 'T-102',
+    assignedTruckTlbNo: 'TLB-88210',
+    freightAmount: 3900,
+    brokerCommission: 390,
+    loadStatus: 'Assigned',
+    notes: 'Direct discharge at site warehouse. Forklift on standby at stop 1.',
+    attachedPdfName: 'DN-BRK-9045_GulfExpress.pdf',
+    createdAt: '2026-09-03T07:15:00Z',
+    updatedAt: '2026-09-03T07:30:00Z'
+  },
+  {
+    id: 'brk_003',
+    dnNumber: 'DN-BRK-7810',
+    slipDate: '2026-09-01',
+    brokerName: 'Red Sea Cargo Carriers & Brokers',
+    materialItem: 'Steel Wire Mesh & Reinforcement Ties',
+    pickupLocation: 'Dammam Port Customs Zone Gate 7',
+    dropLocations: [
+      {
+        id: 'drop_301',
+        stopNumber: 1,
+        dropLocation: 'Khobar New Tower Site A',
+        deliveryQty: 500,
+        unit: 'PCS',
+        status: 'Delivered',
+        deliveredAt: '2026-09-02 11:20',
+        recipientName: 'Eng. Rashed',
+        recipientPhone: '+966 50 998 7766',
+        notes: 'Delivered and signed.'
+      },
+      {
+        id: 'drop_302',
+        stopNumber: 2,
+        dropLocation: 'Jubail Heavy Industries Yard 9',
+        deliveryQty: 450,
+        unit: 'PCS',
+        status: 'Delivered',
+        deliveredAt: '2026-09-02 16:45',
+        recipientName: 'Abdulaziz Al-Mutairi',
+        recipientPhone: '+966 55 441 2233',
+        notes: 'POD signed and stamped.'
+      }
+    ],
+    assignedDriverId: 'drv_3',
+    assignedDriverName: 'Tariq Al-Mansoor',
+    assignedDriverPhone: '+966 54 321 0987',
+    assignedTruckPlate: 'T-103',
+    assignedTruckTlbNo: 'TLB-74199',
+    freightAmount: 5200,
+    brokerCommission: 520,
+    loadStatus: 'Delivered',
+    notes: 'All drop receipts verified and signed by project engineers.',
+    attachedPdfName: 'DN-BRK-7810_Signed_POD.pdf',
+    createdAt: '2026-09-01T08:00:00Z',
+    updatedAt: '2026-09-02T17:00:00Z',
+    completedAt: '2026-09-02T17:15:00Z'
+  },
+  {
+    id: 'brk_004',
+    dnNumber: 'DN-BRK-9112',
+    slipDate: '2026-09-03',
+    brokerName: 'Arabian Overland Brokerage',
+    materialItem: 'Special Dry Mortar Premix (TLB Bulk)',
+    pickupLocation: 'Jeddah Industrial City Phase 3',
+    dropLocations: [
+      {
+        id: 'drop_401',
+        stopNumber: 1,
+        dropLocation: 'Madinah North Depot 2',
+        deliveryQty: 300,
+        unit: 'BAG',
+        status: 'Pending',
+        recipientName: 'Omar Al-Harbi',
+        recipientPhone: '+966 50 112 3344'
+      },
+      {
+        id: 'drop_402',
+        stopNumber: 2,
+        dropLocation: 'Yanbu Royal Commission Yard',
+        deliveryQty: 250,
+        unit: 'BAG',
+        status: 'Pending',
+        recipientName: 'Bandar Al-Juhani',
+        recipientPhone: '+966 56 778 8990'
+      },
+      {
+        id: 'drop_403',
+        stopNumber: 3,
+        dropLocation: 'Umluj Resort Construction Cluster',
+        deliveryQty: 200,
+        unit: 'BAG',
+        status: 'Pending',
+        recipientName: 'Tariq Qasim',
+        recipientPhone: '+966 54 665 5443'
+      }
+    ],
+    freightAmount: 6500,
+    brokerCommission: 650,
+    loadStatus: 'Pending',
+    notes: 'New booking awaiting driver & truck dispatch assignment.',
+    createdAt: '2026-09-03T09:00:00Z',
+    updatedAt: '2026-09-03T09:00:00Z'
   }
 ];
 

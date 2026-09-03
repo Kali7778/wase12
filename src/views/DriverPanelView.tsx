@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { Trip, TripStep, SlipStatus, DriverStatus } from '../types';
+import { Trip, TripStep, SlipStatus, DriverStatus, BrokerLoad, BrokerDropLocation } from '../types';
+import { BrokerMarkDropModal } from '../components/BrokerMarkDropModal';
+import { BrokerPdfViewModal } from '../components/BrokerPdfViewModal';
 import { formatCurrency } from '../utils/i18n';
 import {
   Truck,
@@ -69,12 +71,20 @@ export const DriverPanelView: React.FC = () => {
     confirmDriverDeliveryWithQty,
     inwardDriverReturnedStock,
     updateDriverStatus,
+    brokerLoads,
+    updateBrokerDropStatus,
+    markBrokerLoadDelivered,
   } = useApp();
 
   const isAr = language === 'ar';
 
   // Navigation tab state inside Driver Panel
-  const [activeTab, setActiveTab] = useState<'active_trip' | 'assigned_loads' | 'route_map' | 'reconciliation' | 'history'>('active_trip');
+  const [activeTab, setActiveTab] = useState<'active_trip' | 'assigned_loads' | 'broker_loads' | 'route_map' | 'reconciliation' | 'history'>('active_trip');
+
+  // Broker loads state for driver
+  const [showAllBrokerLoads, setShowAllBrokerLoads] = useState<boolean>(false);
+  const [selectedBrokerLoadForPdf, setSelectedBrokerLoadForPdf] = useState<BrokerLoad | null>(null);
+  const [brokerDropToDeliver, setBrokerDropToDeliver] = useState<{ load: BrokerLoad; drop: BrokerDropLocation } | null>(null);
 
   // Filter for assigned loads tab
   const [loadsFilter, setLoadsFilter] = useState<'all' | 'today' | 'loading' | 'in_transit' | 'delivered'>('all');
@@ -111,6 +121,16 @@ export const DriverPanelView: React.FC = () => {
       t.driverId === activeDriver.id ||
       (t.driverName && t.driverName.toLowerCase().includes(activeDriver.name.toLowerCase().split(' ')[0]))
   );
+
+  // Filter broker loads assigned to this driver
+  const driverBrokerLoads = brokerLoads.filter(
+    (b) =>
+      b.assignedDriverId === activeDriver.id ||
+      (b.assignedDriverName && b.assignedDriverName.toLowerCase().includes(activeDriver.name.toLowerCase().split(' ')[0])) ||
+      (b.assignedTruckPlate && (b.assignedTruckPlate === activeDriver.assignedVehiclePlate || b.assignedTruckPlate === assignedVehicle.plateNumber))
+  );
+
+  const displayedBrokerLoads = showAllBrokerLoads ? brokerLoads : driverBrokerLoads;
 
   // Active in-progress trip (either loading, on_route, or recently delivered)
   const activeTrip =
@@ -631,6 +651,22 @@ export const DriverPanelView: React.FC = () => {
         >
           <Package className="w-4 h-4" />
           <span>Assigned Loads &amp; Today's Trips ({driverTrips.length})</span>
+        </button>
+
+        <button
+          id="tab-broker-loads"
+          onClick={() => setActiveTab('broker_loads')}
+          className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'broker_loads'
+              ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25'
+              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>🏢 Broker Loads (Multi-Drop) ({driverBrokerLoads.length})</span>
+          {driverBrokerLoads.some((l) => l.loadStatus === 'Assigned' || l.loadStatus === 'In Transit') && (
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          )}
         </button>
 
         <button
@@ -1240,6 +1276,365 @@ export const DriverPanelView: React.FC = () => {
                 </div>
               ))}
           </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT: BROKER LOADS (MULTI-DROP) */}
+      {activeTab === 'broker_loads' && (
+        <div className="space-y-6">
+          {/* Header & Filter Bar */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-mono font-bold tracking-wider">
+                  MULTI-DROP FREIGHT
+                </span>
+                <span className="text-xs text-slate-400">
+                  {driverBrokerLoads.length} Assigned to {activeDriver.name}
+                </span>
+              </div>
+              <h2 className="text-xl font-black text-slate-900 dark:text-white mt-1">
+                {isAr ? 'حمولات الوسطاء والتسليم متعدد المحطات' : 'Broker Loads (Multi-Drop Deliveries)'}
+              </h2>
+              <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+                {isAr
+                  ? 'يتم تحديث كل نقطة تفريغ بشكل مستقل: معلق (Pending) ← قيد النقل (In Transit) ← تم التسليم (Delivered)'
+                  : 'Stops are independently tracked: Pending → In Transit → Delivered with receiver confirmation and POD slip access.'}
+              </p>
+            </div>
+
+            {/* Switch Filter: My Loads vs All Broker Loads */}
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setShowAllBrokerLoads(false)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  !showAllBrokerLoads
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                My Assigned ({driverBrokerLoads.length})
+              </button>
+              <button
+                onClick={() => setShowAllBrokerLoads(true)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  showAllBrokerLoads
+                    ? 'bg-amber-500 text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                All Broker Loads ({brokerLoads.length})
+              </button>
+            </div>
+          </div>
+
+          {/* Loads List */}
+          {displayedBrokerLoads.length === 0 ? (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-12 border border-slate-200/80 dark:border-slate-800 text-center space-y-3">
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+                <Layers className="w-8 h-8" />
+              </div>
+              <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                No Broker Loads Found
+              </h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                No broker loads are currently assigned to {activeDriver.name}. You can switch to view all loads or check with the dispatcher.
+              </p>
+              {!showAllBrokerLoads && brokerLoads.length > 0 && (
+                <button
+                  onClick={() => setShowAllBrokerLoads(true)}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-md cursor-pointer inline-flex items-center gap-2 mt-2"
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>View All Active Broker Loads ({brokerLoads.length})</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {displayedBrokerLoads.map((load) => {
+                const totalDrops = load.dropLocations.length;
+                const completedDrops = load.dropLocations.filter((d) => d.status === 'Delivered').length;
+                const inTransitDrops = load.dropLocations.filter((d) => d.status === 'In Transit').length;
+                const allDropsDelivered = totalDrops > 0 && completedDrops === totalDrops;
+                const progressPercent = totalDrops > 0 ? Math.round((completedDrops / totalDrops) * 100) : 0;
+
+                const getStatusColor = (status: string) => {
+                  switch (status) {
+                    case 'Pending':
+                      return 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800';
+                    case 'Assigned':
+                      return 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800';
+                    case 'In Transit':
+                      return 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800';
+                    case 'Delivered':
+                      return 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
+                    case 'Cancelled':
+                      return 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800';
+                    default:
+                      return 'bg-slate-100 text-slate-700 border-slate-200';
+                  }
+                };
+
+                return (
+                  <div
+                    key={load.id}
+                    className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden"
+                  >
+                    {/* Card Header Bar */}
+                    <div className="p-5 border-b border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-850/40">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="font-mono font-black text-sm text-slate-900 dark:text-white px-2.5 py-1 rounded-lg bg-slate-200/70 dark:bg-slate-800">
+                          {load.dnNumber}
+                        </span>
+                        <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-bold">
+                          <Building2 className="w-4 h-4 text-amber-500" />
+                          <span>{load.brokerName}</span>
+                        </div>
+                        <span className="text-xs text-slate-400">
+                          Slip Date: <span className="font-medium text-slate-700 dark:text-slate-300">{load.slipDate}</span>
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-black border ${getStatusColor(
+                            load.loadStatus
+                          )}`}
+                        >
+                          {load.loadStatus}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Summary Info Row */}
+                    <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 border-b border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-900 text-xs">
+                      <div>
+                        <span className="text-slate-400 block mb-0.5">Material / Item</span>
+                        <span className="font-bold text-slate-900 dark:text-white">
+                          {load.materialItem}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block mb-0.5">Pickup Location</span>
+                        <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-rose-500 flex-shrink-0" />
+                          <span className="truncate">{load.pickupLocation}</span>
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block mb-0.5">Assigned Fleet</span>
+                        <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                          <Truck className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
+                          <span>{load.assignedTruckPlate || 'Not Assigned'}</span>
+                        </span>
+                        <span className="text-[11px] text-slate-500 block">
+                          Driver: {load.assignedDriverName || 'Unassigned'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block mb-0.5">Freight SAR</span>
+                        <span className="font-black text-slate-900 dark:text-white font-mono text-sm">
+                          {formatCurrency(load.freightAmount)}
+                        </span>
+                        <span className="text-[11px] text-slate-500 block">
+                          Comm: {formatCurrency(load.brokerCommission)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {load.notes && (
+                      <div className="px-5 py-2.5 bg-amber-50/40 dark:bg-amber-950/20 border-b border-amber-100 dark:border-amber-900/30 text-xs text-amber-800 dark:text-amber-200">
+                        <span className="font-bold">Instructions: </span>
+                        {load.notes}
+                      </div>
+                    )}
+
+                    {/* Multi-Drop Stops Progress & Table */}
+                    <div className="p-5 space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-rose-500" />
+                            <span>
+                              Delivery Stops ({completedDrops}/{totalDrops} Completed)
+                            </span>
+                          </h4>
+                          <span className="text-[11px] text-slate-400">
+                            Update each drop location independently as you reach and unload at each customer destination.
+                          </span>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="flex items-center gap-3 w-full sm:w-64">
+                          <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all duration-500"
+                              style={{ width: `${progressPercent}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-400">
+                            {progressPercent}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Drop Locations Table */}
+                      <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800">
+                            <tr>
+                              <th className="py-3 px-4 w-16">Stop</th>
+                              <th className="py-3 px-4">Drop Location</th>
+                              <th className="py-3 px-4 text-right">Delivery Qty</th>
+                              <th className="py-3 px-4 text-center">Status</th>
+                              <th className="py-3 px-4 text-right">Driver Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                            {load.dropLocations.map((drop) => {
+                              const isDropDelivered = drop.status === 'Delivered';
+                              const isDropInTransit = drop.status === 'In Transit';
+                              const isDropPending = drop.status === 'Pending';
+
+                              return (
+                                <tr
+                                  key={drop.id}
+                                  className={`hover:bg-slate-50/60 dark:hover:bg-slate-850/50 transition-colors ${
+                                    isDropInTransit ? 'bg-blue-50/30 dark:bg-blue-950/20' : ''
+                                  }`}
+                                >
+                                  {/* Stop # */}
+                                  <td className="py-3.5 px-4 font-black text-slate-900 dark:text-white">
+                                    <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-mono text-xs">
+                                      {drop.stopNumber}
+                                    </div>
+                                  </td>
+
+                                  {/* Drop Location */}
+                                  <td className="py-3.5 px-4">
+                                    <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                      <MapPin className="w-3.5 h-3.5 text-rose-500 flex-shrink-0" />
+                                      <span>{drop.locationName}</span>
+                                    </div>
+                                    {drop.deliveredAt && (
+                                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block mt-0.5">
+                                        Delivered at: {new Date(drop.deliveredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {drop.receivedBy ? ` • Receiver: ${drop.receivedBy}` : ''}
+                                      </span>
+                                    )}
+                                  </td>
+
+                                  {/* Delivery Qty */}
+                                  <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">
+                                    {drop.deliveryQty} {drop.uom || 'Bags'}
+                                    {drop.tonnage ? (
+                                      <span className="text-[11px] text-slate-400 block font-normal">
+                                        ({drop.tonnage.toFixed(2)} Tons)
+                                      </span>
+                                    ) : null}
+                                  </td>
+
+                                  {/* Status */}
+                                  <td className="py-3.5 px-4 text-center">
+                                    <span
+                                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black border ${
+                                        isDropPending
+                                          ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                                          : isDropInTransit
+                                          ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 animate-pulse'
+                                          : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                                      }`}
+                                    >
+                                      {isDropDelivered && <CheckCircle2 className="w-3 h-3" />}
+                                      {isDropInTransit && <Truck className="w-3 h-3" />}
+                                      {drop.status}
+                                    </span>
+                                  </td>
+
+                                  {/* Driver Action Button */}
+                                  <td className="py-3.5 px-4 text-right">
+                                    {isDropPending && (
+                                      <button
+                                        onClick={() => {
+                                          updateBrokerDropStatus(load.id, drop.id, 'In Transit');
+                                          showToast(`Departed for Stop #${drop.stopNumber}: ${drop.locationName}`, 'info');
+                                        }}
+                                        className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 ml-auto cursor-pointer"
+                                      >
+                                        <Truck className="w-3.5 h-3.5" />
+                                        <span>Start Transit</span>
+                                      </button>
+                                    )}
+
+                                    {isDropInTransit && (
+                                      <button
+                                        onClick={() => setBrokerDropToDeliver({ load, drop })}
+                                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 ml-auto cursor-pointer animate-bounce"
+                                      >
+                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                        <span>Mark Delivered</span>
+                                      </button>
+                                    )}
+
+                                    {isDropDelivered && (
+                                      <div className="flex items-center justify-end gap-1 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                                        <CheckCheck className="w-4 h-4" />
+                                        <span>Delivered</span>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Card Footer Actions */}
+                    <div className="p-4 bg-slate-50 dark:bg-slate-850/60 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        {load.attachedPdfName ? (
+                          <button
+                            onClick={() => setSelectedBrokerLoadForPdf(load)}
+                            className="px-3 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 text-xs font-bold flex items-center gap-1.5 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-indigo-500" />
+                            <span>View Attached Slip ({load.attachedPdfName})</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setSelectedBrokerLoadForPdf(load)}
+                            className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-amber-500" />
+                            <span>View Consignment Details</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {allDropsDelivered && load.loadStatus !== 'Delivered' && (
+                          <button
+                            onClick={() => {
+                              markBrokerLoadDelivered(load.id);
+                              confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
+                              showToast(`Broker Load ${load.dnNumber} completed and delivered!`, 'success');
+                            }}
+                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md shadow-emerald-600/25 flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <CheckCheck className="w-4 h-4" />
+                            <span>Complete &amp; Finalize Load</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -2031,6 +2426,25 @@ export const DriverPanelView: React.FC = () => {
             </div>
           </form>
         </div>
+      )}
+
+      {/* Broker Mark Drop Delivered Modal */}
+      {brokerDropToDeliver && (
+        <BrokerMarkDropModal
+          isOpen={!!brokerDropToDeliver}
+          onClose={() => setBrokerDropToDeliver(null)}
+          load={brokerDropToDeliver.load}
+          drop={brokerDropToDeliver.drop}
+        />
+      )}
+
+      {/* Broker PDF / Attachment Modal */}
+      {selectedBrokerLoadForPdf && (
+        <BrokerPdfViewModal
+          isOpen={!!selectedBrokerLoadForPdf}
+          onClose={() => setSelectedBrokerLoadForPdf(null)}
+          load={selectedBrokerLoadForPdf}
+        />
       )}
     </div>
   );

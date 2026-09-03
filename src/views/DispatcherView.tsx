@@ -40,6 +40,7 @@ import { InwardStockModal } from '../components/InwardStockModal';
 import { RouteShiftModal } from '../components/RouteShiftModal';
 import { ManagerTripControlModal } from '../components/ManagerTripControlModal';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
+import { BrokerLoadManagement } from '../components/BrokerLoadManagement';
 
 interface DispatcherViewProps {
   onOpenNewTripModal: () => void;
@@ -68,9 +69,13 @@ export const DispatcherView: React.FC<DispatcherViewProps> = ({
     setSelectedDriverId,
     showToast,
     language,
+    brokerLoads,
   } = useApp();
 
   const isAr = language === 'ar';
+
+  // Section view: Standard Plant Loads vs Broker Load Management
+  const [dispatcherViewMode, setDispatcherViewMode] = useState<'standard_trips' | 'broker_loads'>('standard_trips');
 
   // Filters & State
   const [activeTab, setActiveTab] = useState<'all' | 'pending_slips' | 'today_trips' | 'loading' | 'on_route' | 'delivered'>('all');
@@ -153,6 +158,19 @@ export const DispatcherView: React.FC<DispatcherViewProps> = ({
         {/* Action Buttons: [ + Company Load ] [ + Upload PDF ] [ Scan DN ] [ Manual Add ] */}
         <div className="flex flex-wrap items-center gap-2.5">
           <button
+            id="dispatcher-broker-loads-btn"
+            onClick={() => setDispatcherViewMode('broker_loads')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 shadow-lg transition-all transform active:scale-95 cursor-pointer ${
+              dispatcherViewMode === 'broker_loads'
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-amber-500/25 ring-2 ring-amber-400'
+                : 'bg-gradient-to-r from-amber-600/90 to-amber-700/90 hover:from-amber-600 hover:to-amber-700 text-white'
+            }`}
+          >
+            <Layers className="w-4 h-4 text-white" />
+            <span>🏢 Broker Loads ({brokerLoads.length})</span>
+          </button>
+
+          <button
             id="dispatcher-company-load-btn"
             onClick={() => setShowCompanyLoadModal(true)}
             className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black flex items-center gap-2 shadow-lg shadow-purple-500/25 transition-all transform active:scale-95 cursor-pointer"
@@ -190,7 +208,40 @@ export const DispatcherView: React.FC<DispatcherViewProps> = ({
         </div>
       </div>
 
-      {/* KPI METRICS TABS BAR (Requested Text-Based Box Layout) */}
+      {/* Primary Section Switcher: Standard Plant Loads vs Broker Load Management */}
+      <div className="flex items-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl w-full sm:w-auto self-start border border-slate-200 dark:border-slate-700/80">
+        <button
+          id="switch-standard-trips-btn"
+          onClick={() => setDispatcherViewMode('standard_trips')}
+          className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            dispatcherViewMode === 'standard_trips'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-md'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Truck className="w-4 h-4 text-indigo-500" />
+          <span>📦 Standard Logistics Loads ({trips.length})</span>
+        </button>
+
+        <button
+          id="switch-broker-loads-btn"
+          onClick={() => setDispatcherViewMode('broker_loads')}
+          className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            dispatcherViewMode === 'broker_loads'
+              ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>🏢 Broker Load Management (Multi-Drop) ({brokerLoads.length})</span>
+        </button>
+      </div>
+
+      {dispatcherViewMode === 'broker_loads' ? (
+        <BrokerLoadManagement onNavigateToDriverPanel={() => setCurrentView('driverPanel')} />
+      ) : (
+        <>
+          {/* KPI METRICS TABS BAR (Requested Text-Based Box Layout) */}
       {/* Pending Slips | Today's Trips | Loading | On Route | Delivered */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {/* Metric 1: Pending Slips */}
@@ -748,6 +799,8 @@ export const DispatcherView: React.FC<DispatcherViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
 
       {/* New Company Load Modal */}

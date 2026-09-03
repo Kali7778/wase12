@@ -986,3 +986,47 @@ export interface ApprovalRequest {
   auditId?: string;
 }
 
+// ==========================================
+// BROKER LOAD MANAGEMENT TYPES
+// ==========================================
+
+export type BrokerLoadStatus = 'Pending' | 'Assigned' | 'In Transit' | 'Delivered' | 'Cancelled';
+export type BrokerDropStatus = 'Pending' | 'In Transit' | 'Delivered';
+
+export interface BrokerDropLocation {
+  id: string;
+  stopNumber: number;
+  dropLocation: string;
+  deliveryQty: number;
+  unit?: string; // e.g. 'BAG', 'TON', 'PALLET', 'PCS'
+  status: BrokerDropStatus;
+  deliveredAt?: string;
+  recipientName?: string;
+  recipientPhone?: string;
+  notes?: string;
+}
+
+export interface BrokerLoad {
+  id: string;
+  dnNumber: string; // DN No.
+  slipDate: string; // Slip Date e.g. "2026-09-03"
+  brokerName: string; // Broker Name
+  materialItem: string; // Material / Item
+  pickupLocation: string; // Pickup Location
+  dropLocations: BrokerDropLocation[]; // Multiple drop locations / stops
+  assignedDriverId?: string;
+  assignedDriverName?: string;
+  assignedDriverPhone?: string;
+  assignedTruckPlate?: string; // Assigned Truck
+  assignedTruckTlbNo?: string; // TLB No.
+  freightAmount: number; // Freight Amount (SAR)
+  brokerCommission: number; // Broker Commission (SAR)
+  loadStatus: BrokerLoadStatus;
+  notes?: string;
+  attachedPdfUrl?: string; // Base64 data URL or document link
+  attachedPdfName?: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+}
+

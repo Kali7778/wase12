@@ -42,6 +42,10 @@ import {
   SupplierStockTransfer,
   GypsumInventoryItem,
   GypsumMovement,
+  BrokerLoad,
+  BrokerDropLocation,
+  BrokerLoadStatus,
+  BrokerDropStatus,
 } from '../types';
 import {
   initialTrips,
@@ -67,6 +71,7 @@ import {
   saudiLocations,
   initialZatcaQrScans,
   initialInvoiceStatusHistory,
+  initialBrokerLoads,
 } from '../mockData';
 import { translations } from '../utils/i18n';
 import { generateTaxInvoiceQrBase64 } from '../utils/zatca';
@@ -553,6 +558,22 @@ interface AppContextType {
   aiDnImportInitialMode: DnImportMode;
   openAiDnImportModal: (mode?: DnImportMode) => void;
   closeAiDnImportModal: () => void;
+
+  // Broker Load Management
+  brokerLoads: BrokerLoad[];
+  addBrokerLoad: (load: Omit<BrokerLoad, 'id' | 'createdAt' | 'updatedAt'>) => BrokerLoad;
+  updateBrokerLoad: (id: string, updates: Partial<BrokerLoad>) => void;
+  deleteBrokerLoad: (id: string) => void;
+  assignBrokerDriverTruck: (id: string, driverId: string, truckPlate: string, tlbNo?: string) => void;
+  updateBrokerDropStatus: (
+    loadId: string,
+    stopId: string,
+    status: BrokerDropStatus,
+    extra?: { deliveredAt?: string; recipientName?: string; notes?: string }
+  ) => void;
+  addBrokerDropLocation: (loadId: string, drop: Omit<BrokerDropLocation, 'id' | 'stopNumber'>) => void;
+  markBrokerLoadDelivered: (id: string) => void;
+  attachBrokerPdf: (id: string, fileDataUrl: string, fileName: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -699,7 +720,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return saved ? JSON.parse(saved) : initialInvoiceStatusHistory;
   });
 
+  const [brokerLoads, setBrokerLoads] = useState<BrokerLoad[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY + '_brokerLoads');
+    return saved ? JSON.parse(saved) : initialBrokerLoads;
+  });
+
   // Sync to local storage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY + '_brokerLoads', JSON.stringify(brokerLoads));
+  }, [brokerLoads]);
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY + '_zatcaQrScans', JSON.stringify(zatcaQrScans));
   }, [zatcaQrScans]);
@@ -6431,9 +6460,287 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCompanySettings(initialCompanySettings);
     setMasterAudits(initialMasterAudits);
     setApprovalRequests(initialApprovalRequests);
+    setBrokerLoads(initialBrokerLoads);
 
     localStorage.clear();
     showToast('Demo Data Reset', 'Workspace reloaded with clean starter data.', 'info');
+  };
+
+  // ==========================================
+  // BROKER LOAD MANAGEMENT OPERATIONS
+  // ==========================================
+
+  const addBrokerLoad = (loadData: Omit<BrokerLoad, 'id' | 'createdAt' | 'updatedAt'>): BrokerLoad => {
+    const newId = 'brk_' + Date.now();
+    const dnNum = loadData.dnNumber?.trim() || `DN-BRK-${Math.floor(1000 + Math.random() * 9000)}`;
+    const normalizedStops: BrokerDropLocation[] = (loadData.dropLocations || []).map((stop, idx) => ({
+      ...stop,
+      id: stop.id || `drop_${Date.now()}_${idx}`,
+      stopNumber: idx + 1,
+      status: stop.status || 'Pending',
+    }));
+
+    const newLoad: BrokerLoad = {
+      ...loadData,
+      id: newId,
+      dnNumber: dnNum,
+      dropLocations: normalizedStops,
+      loadStatus: loadData.loadStatus || (loadData.assignedDriverId ? 'Assigned' : 'Pending'),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setBrokerLoads((prev) => [newLoad, ...prev]);
+
+    try {
+      logMasterAudit({
+        action: 'TLB_SALE_RECORDED',
+        category: 'dispatch',
+        recordRef: newLoad.dnNumber,
+        customer: newLoad.brokerName,
+        item: newLoad.materialItem,
+        quantity: newLoad.dropLocations.reduce((sum, s) => sum + (Number(s.deliveryQty) || 0), 0),
+        reason: `Broker Load created for ${newLoad.brokerName} with ${newLoad.dropLocations.length} drop stop(s)`,
+      });
+    } catch {
+      // ignore
+    }
+
+    showToast(
+      language === 'ar' ? 'تم إضافة حمولة الوسيط بنجاح' : 'Broker Load Created',
+      language === 'ar'
+        ? `تم تسجيل الحمولة ${newLoad.dnNumber} لصالح ${newLoad.brokerName}`
+        : `Load ${newLoad.dnNumber} registered for ${newLoad.brokerName} with ${newLoad.dropLocations.length} stops.`,
+      'success'
+    );
+
+    return newLoad;
+  };
+
+  const updateBrokerLoad = (id: string, updates: Partial<BrokerLoad>) => {
+    setBrokerLoads((prev) =>
+      prev.map((load) => {
+        if (load.id !== id) return load;
+
+        const updated = {
+          ...load,
+          ...updates,
+          updatedAt: new Date().toISOString(),
+        };
+
+        // If drops are updated, re-normalize stop numbers and check all-delivered
+        if (updates.dropLocations) {
+          updated.dropLocations = updates.dropLocations.map((d, i) => ({
+            ...d,
+            stopNumber: i + 1,
+          }));
+          const allDelivered =
+            updated.dropLocations.length > 0 &&
+            updated.dropLocations.every((s) => s.status === 'Delivered');
+          if (allDelivered && updated.loadStatus !== 'Delivered') {
+            updated.loadStatus = 'Delivered';
+            updated.completedAt = updated.completedAt || new Date().toISOString();
+          }
+        }
+
+        return updated;
+      })
+    );
+
+    showToast(
+      language === 'ar' ? 'تم تحديث الحمولة' : 'Broker Load Updated',
+      language === 'ar' ? 'تم حفظ التعديلات بنجاح' : 'Load details and drop locations updated.',
+      'info'
+    );
+  };
+
+  const deleteBrokerLoad = (id: string) => {
+    const target = brokerLoads.find((b) => b.id === id);
+    setBrokerLoads((prev) => prev.filter((b) => b.id !== id));
+    showToast(
+      language === 'ar' ? 'تم حذف الحمولة' : 'Broker Load Deleted',
+      target ? `Load #${target.dnNumber} removed.` : 'Load removed from system.',
+      'warning'
+    );
+  };
+
+  const assignBrokerDriverTruck = (
+    id: string,
+    driverId: string,
+    truckPlate: string,
+    tlbNo?: string
+  ) => {
+    const foundDriver = drivers.find((d) => d.id === driverId);
+    setBrokerLoads((prev) =>
+      prev.map((load) => {
+        if (load.id !== id) return load;
+        const newStatus = load.loadStatus === 'Pending' ? 'Assigned' : load.loadStatus;
+        return {
+          ...load,
+          assignedDriverId: driverId,
+          assignedDriverName: foundDriver?.name || driverId,
+          assignedDriverPhone: foundDriver?.phone || '',
+          assignedTruckPlate: truckPlate,
+          assignedTruckTlbNo: tlbNo || load.assignedTruckTlbNo || 'TLB-AUTO',
+          loadStatus: newStatus,
+          updatedAt: new Date().toISOString(),
+        };
+      })
+    );
+
+    showToast(
+      language === 'ar' ? 'تم تعيين السائق والشاحنة' : 'Driver & Truck Assigned',
+      language === 'ar'
+        ? `تم إسناد الحمولة للسائق ${foundDriver?.name || driverId} على الشاحنة ${truckPlate}`
+        : `Assigned to ${foundDriver?.name || driverId} on Truck ${truckPlate}.`,
+      'success'
+    );
+  };
+
+  const updateBrokerDropStatus = (
+    loadId: string,
+    stopId: string,
+    status: BrokerDropStatus,
+    extra?: { deliveredAt?: string; recipientName?: string; notes?: string }
+  ) => {
+    setBrokerLoads((prev) =>
+      prev.map((load) => {
+        if (load.id !== loadId) return load;
+
+        let allDelivered = false;
+        const updatedDrops = load.dropLocations.map((drop) => {
+          if (drop.id === stopId) {
+            return {
+              ...drop,
+              status,
+              deliveredAt:
+                status === 'Delivered'
+                  ? extra?.deliveredAt || drop.deliveredAt || new Date().toLocaleString()
+                  : drop.deliveredAt,
+              recipientName: extra?.recipientName || drop.recipientName,
+              notes: extra?.notes || drop.notes,
+            };
+          }
+          return drop;
+        });
+
+        allDelivered = updatedDrops.length > 0 && updatedDrops.every((s) => s.status === 'Delivered');
+
+        let newLoadStatus = load.loadStatus;
+        let compAt = load.completedAt;
+
+        if (allDelivered) {
+          newLoadStatus = 'Delivered';
+          compAt = compAt || new Date().toISOString();
+          try {
+            confetti({ particleCount: 70, spread: 75, origin: { y: 0.6 } });
+          } catch {
+            // ignore
+          }
+        } else if (status === 'In Transit' && (load.loadStatus === 'Pending' || load.loadStatus === 'Assigned')) {
+          newLoadStatus = 'In Transit';
+        }
+
+        return {
+          ...load,
+          dropLocations: updatedDrops,
+          loadStatus: newLoadStatus,
+          completedAt: compAt,
+          updatedAt: new Date().toISOString(),
+        };
+      })
+    );
+
+    showToast(
+      language === 'ar' ? 'تم تحديث نقطة التسليم' : 'Drop Stop Updated',
+      language === 'ar'
+        ? `الحالة الحالية للنقطة: ${status}`
+        : `Drop status transitioned to "${status}".`,
+      'info'
+    );
+  };
+
+  const addBrokerDropLocation = (
+    loadId: string,
+    drop: Omit<BrokerDropLocation, 'id' | 'stopNumber'>
+  ) => {
+    setBrokerLoads((prev) =>
+      prev.map((load) => {
+        if (load.id !== loadId) return load;
+        const nextNum = (load.dropLocations?.length || 0) + 1;
+        const newDrop: BrokerDropLocation = {
+          ...drop,
+          id: 'drop_' + Date.now(),
+          stopNumber: nextNum,
+          status: drop.status || 'Pending',
+        };
+        return {
+          ...load,
+          dropLocations: [...(load.dropLocations || []), newDrop],
+          updatedAt: new Date().toISOString(),
+        };
+      })
+    );
+
+    showToast(
+      language === 'ar' ? 'تمت إضافة نقطة التسليم' : 'Drop Location Added',
+      language === 'ar' ? `تم إضافة النقطة: ${drop.dropLocation}` : `Added stop: ${drop.dropLocation}`,
+      'success'
+    );
+  };
+
+  const markBrokerLoadDelivered = (id: string) => {
+    setBrokerLoads((prev) =>
+      prev.map((load) => {
+        if (load.id !== id) return load;
+        const allDeliveredDrops = load.dropLocations.map((d) => ({
+          ...d,
+          status: 'Delivered' as BrokerDropStatus,
+          deliveredAt: d.deliveredAt || new Date().toLocaleString(),
+        }));
+        return {
+          ...load,
+          loadStatus: 'Delivered',
+          dropLocations: allDeliveredDrops,
+          completedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      })
+    );
+
+    try {
+      confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+    } catch {
+      // ignore
+    }
+
+    showToast(
+      language === 'ar' ? 'تم إكمال وتوصيل الحمولة' : 'Broker Load Delivered',
+      language === 'ar'
+        ? 'تم تحديد كافة نقاط التوصيل كمسلمة بنجاح'
+        : 'All drop stops marked as Delivered. Consignment cleared.',
+      'success'
+    );
+  };
+
+  const attachBrokerPdf = (id: string, fileDataUrl: string, fileName: string) => {
+    setBrokerLoads((prev) =>
+      prev.map((load) => {
+        if (load.id !== id) return load;
+        return {
+          ...load,
+          attachedPdfUrl: fileDataUrl,
+          attachedPdfName: fileName,
+          updatedAt: new Date().toISOString(),
+        };
+      })
+    );
+
+    showToast(
+      language === 'ar' ? 'تم إرفاق الملف' : 'PDF Slip Attached',
+      language === 'ar' ? `تم حفظ ${fileName}` : `File ${fileName} attached to broker load.`,
+      'success'
+    );
   };
 
   return (
@@ -6589,6 +6896,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         aiDnImportInitialMode,
         openAiDnImportModal,
         closeAiDnImportModal,
+        brokerLoads,
+        addBrokerLoad,
+        updateBrokerLoad,
+        deleteBrokerLoad,
+        assignBrokerDriverTruck,
+        updateBrokerDropStatus,
+        addBrokerDropLocation,
+        markBrokerLoadDelivered,
+        attachBrokerPdf,
       }}
     >
       {children}
