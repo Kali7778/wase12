@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Avatar } from '../components/Avatar';
 import { useApp } from '../context/AppContext';
 import { SystemUser, UserRole } from '../types';
 import { UserFormModal } from '../components/UserFormModal';
@@ -24,7 +25,7 @@ import {
 } from 'lucide-react';
 
 export const UsersView: React.FC = () => {
-  const { users, addUser, updateUser, deleteUser, activeRole, setActiveRole, currentUser, showToast } = useApp();
+  const { users, addUser, updateUser, deleteUser, activeRole, currentUser, showToast } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
@@ -141,7 +142,7 @@ export const UsersView: React.FC = () => {
         </div>
       </div>
 
-      {/* Role Switcher Sandbox Cards */}
+      {/* Role reference — what each role may do. Roles are assigned by an administrator. */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {(['admin', 'dispatcher', 'warehouse', 'accountant'] as UserRole[]).map((roleKey) => {
           const roleInfo = roleDefinitions[roleKey];
@@ -149,11 +150,7 @@ export const UsersView: React.FC = () => {
           return (
             <div
               key={roleKey}
-              onClick={() => {
-                setActiveRole(roleKey);
-                showToast('Role Switched', `Now operating with ${roleInfo.title} capabilities.`, 'info');
-              }}
-              className={`p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
+              className={`p-5 rounded-3xl border transition-colors flex flex-col justify-between space-y-3 ${
                 isCurrent
                   ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/20 scale-[1.02]'
                   : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:border-blue-400'
@@ -272,14 +269,7 @@ export const UsersView: React.FC = () => {
                   <tr key={usr.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                     <td className="p-3.5">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={usr.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80'}
-                          alt={usr.name}
-                          className="w-9 h-9 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-2xs"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80';
-                          }}
-                        />
+                        <Avatar name={usr.name} src={usr.avatarUrl} size={36} className="border border-slate-200 dark:border-slate-700" />
                         <div>
                           <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                             <span>{usr.name}</span>
@@ -299,7 +289,7 @@ export const UsersView: React.FC = () => {
                     <td className="p-3.5 font-mono text-slate-600 dark:text-slate-300">
                       <div className="flex items-center gap-1">
                         <Phone className="w-3 h-3 text-slate-400" />
-                        <span>{usr.phone || '+966 50 000 0000'}</span>
+                        <span>{usr.phone || '—'}</span>
                       </div>
                     </td>
                     <td className="p-3.5">

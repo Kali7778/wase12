@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SystemUser, UserRole } from '../types';
 import { X, UserCheck, Shield, Mail, Phone, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Avatar } from './Avatar';
 
 interface UserFormModalProps {
   isOpen: boolean;
@@ -49,7 +50,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
       setPhone('+966 5');
       setRole('dispatcher');
       setStatus('active');
-      setAvatarUrl('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80');
+      setAvatarUrl('');
     }
   }, [initialData, isOpen]);
 
@@ -75,10 +76,10 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     const payload = {
       name: name.trim(),
       email: email.trim() || `${name.toLowerCase().replace(/\s+/g, '.')}@logiflow.sa`,
-      phone: phone.trim() || '+966 50 000 0000',
+      phone: phone.trim(),
       role,
       status,
-      avatarUrl: avatarUrl.trim() || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+      avatarUrl: avatarUrl.trim() || undefined,
       lastLogin: initialData?.lastLogin || 'Never logged in',
       permissions: initialData?.permissions || defaultPerms[role] || ['basic_access'],
     };
@@ -117,14 +118,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
           {/* Avatar Preview & URL */}
           <div className="flex items-center gap-4 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-            <img
-              src={avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80'}
-              alt="Avatar Preview"
-              className="w-12 h-12 rounded-2xl object-cover border-2 border-white dark:border-slate-700 shadow-xs"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80';
-              }}
-            />
+            <Avatar name={name || 'New user'} src={avatarUrl} size={48} className="border-2 border-white dark:border-slate-700" />
             <div className="flex-1">
               <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                 Avatar Photo URL
@@ -133,7 +127,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                 type="text"
                 value={avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}
-                placeholder="https://images.unsplash.com/photo-..."
+                placeholder="Optional — leave blank to use initials"
                 className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-mono"
               />
             </div>

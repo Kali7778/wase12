@@ -58,7 +58,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setMobileNumber(customer.mobileNumber || customer.phone || '');
       setEmail(customer.email || '');
       setAddress(customer.address || '');
-      setCity(customer.city || 'Riyadh');
+      setCity(customer.city || '—');
       setVatNumber(customer.vatNumber || '');
       setCrNumber(customer.crNumber || '');
       setCustomerType(customer.customerType || 'Corporate');
@@ -121,7 +121,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
           mobileNumber: finalPhone,
           email: email.trim() || 'logistics@client.sa',
           address: address.trim() || 'Industrial City, Saudi Arabia',
-          city: city.trim() || 'Riyadh',
+          city: city.trim() || '',
           vatNumber: vatNumber.trim() || '300000000000003',
           crNumber: crNumber.trim() || '1010000000',
           customerType,
@@ -147,7 +147,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
         mobileNumber: finalPhone,
         email: email.trim() || 'logistics@client.sa',
         address: address.trim() || 'Industrial City, Saudi Arabia',
-        city: city.trim() || 'Riyadh',
+        city: city.trim() || '',
         vatNumber: vatNumber.trim() || `300${Math.floor(100000000000 + Math.random() * 900000000000)}3`,
         crNumber: crNumber.trim() || `1010${Math.floor(100000 + Math.random() * 900000)}`,
         customerType,

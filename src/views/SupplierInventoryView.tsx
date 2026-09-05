@@ -40,6 +40,7 @@ import { BarcodeRenderer } from '../components/BarcodeRenderer';
 
 export const SupplierInventoryView: React.FC = () => {
   const {
+    setCurrentView,
     supplierInventory,
     drivers,
     customers,
@@ -48,7 +49,6 @@ export const SupplierInventoryView: React.FC = () => {
     updateSupplierInventoryItem,
     deleteSupplierInventoryItem,
     transferSupplierStock,
-    openAiDnImportModal,
     showToast,
     language,
   } = useApp();
@@ -92,7 +92,7 @@ export const SupplierInventoryView: React.FC = () => {
     quantity: 750,
     driverId: drivers[0]?.id || '',
     customerId: customers[0]?.id || '',
-    vehiclePlate: drivers[0]?.vehiclePlate || 'T-101',
+    vehiclePlate: drivers[0]?.vehiclePlate || '',
     performedBy: 'Logistics Dispatcher Lead',
     referenceDoc: '',
     notes: '',
@@ -243,7 +243,7 @@ export const SupplierInventoryView: React.FC = () => {
           {/* Primary Action Button: + Upload DN PDF */}
           <button
             id="btn-supplier-upload-pdf"
-            onClick={() => openAiDnImportModal('pdf')}
+            onClick={() => setCurrentView('adminSlips')}
             className="flex-1 sm:flex-none px-4 py-2.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
           >
             <Sparkles className="w-4 h-4 animate-pulse text-amber-300" />
@@ -703,7 +703,7 @@ export const SupplierInventoryView: React.FC = () => {
                         {trn.quantity?.toLocaleString()} BAG
                       </td>
                       <td className="py-3 px-3.5 font-sans font-medium text-slate-800 dark:text-slate-200">
-                        {trn.driverName ? `${trn.driverName} (${trn.vehiclePlate || 'T-101'})` : '—'}
+                        {trn.driverName ? `${trn.driverName} (${trn.vehiclePlate || '—'})` : '—'}
                       </td>
                       <td className="py-3 px-3.5 font-sans text-slate-700 dark:text-slate-300">
                         {trn.customerName || 'Main Inventory Depot'}
@@ -802,7 +802,7 @@ export const SupplierInventoryView: React.FC = () => {
                       setTransferForm({
                         ...transferForm,
                         driverId: e.target.value,
-                        vehiclePlate: d?.vehiclePlate || 'T-101',
+                        vehiclePlate: d?.vehiclePlate || '',
                       });
                     }}
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none"

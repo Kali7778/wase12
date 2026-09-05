@@ -206,7 +206,7 @@ export const NewSaleStockOutModal: React.FC<NewSaleStockOutModalProps> = ({
               <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1.5">
                 <span>Location: <strong>{targetItem.aisle || 'Bay B-01'}</strong> ({targetItem.rack || 'Silo 1'})</span>
                 <span>•</span>
-                <span>Supplier Origin: <strong>{targetItem.sourceSupplier || 'El-Khayyat Gypsum Plant'}</strong></span>
+                <span>Supplier Origin: <strong>{targetItem.sourceSupplier || '—'}</strong></span>
               </p>
             )}
           </div>

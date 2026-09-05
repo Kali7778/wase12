@@ -112,7 +112,7 @@ export const DriverPanelView: React.FC = () => {
     (v) => v.plateNumber === activeDriver.assignedVehiclePlate || v.id === activeDriver.assignedVehicleId
   ) || {
     id: 'v_101',
-    plateNumber: activeDriver.assignedVehiclePlate || 'T-101',
+    plateNumber: activeDriver.assignedVehiclePlate || '',
     model: 'Mercedes-Benz Actros 3340',
     type: 'trailer_30t',
     capacityTons: 30,
@@ -335,7 +335,7 @@ export const DriverPanelView: React.FC = () => {
       barcode: barcodeToUse,
       driverId: activeDriver.id,
       driverName: activeDriver.name,
-      truckPlate: activeDriver.assignedVehiclePlate || matchedTripResult.vehiclePlate || 'T-101',
+      truckPlate: activeDriver.assignedVehiclePlate || matchedTripResult.vehiclePlate || '',
     });
 
     if (result.success) {
@@ -402,73 +402,6 @@ export const DriverPanelView: React.FC = () => {
     }
   };
 
-  const handleSampleSlipUpload = () => {
-    const sampleSlipSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="840" viewBox="0 0 600 840" style="background:%23fdfcf7;font-family:sans-serif;">
-      <rect width="600" height="840" fill="%23fdfcf7"/>
-      <rect x="20" y="20" width="560" height="800" fill="none" stroke="%23cbd5e1" stroke-width="2"/>
-      <text x="40" y="65" font-size="18" font-weight="bold" fill="%230f172a">EL-KHAYYAT GYPSUM PLANT</text>
-      <text x="40" y="88" font-size="11" fill="%2364748b">DELIVERY NOTE &amp; CARGO MANIFEST</text>
-      <text x="420" y="65" font-size="13" font-weight="bold" fill="%23047857">DELIVERED &amp; SIGNED</text>
-      <line x1="40" y1="105" x2="560" y2="105" stroke="%23e2e8f0" stroke-width="2"/>
-      
-      <text x="40" y="135" font-size="13" font-weight="bold" fill="%231e293b">Customer: مؤسسة صرح البنيان للتجارة</text>
-      <text x="40" y="158" font-size="11" fill="%23475569">Customer No: 1100187</text>
-      <text x="40" y="180" font-size="11" fill="%23475569">Item: Gypsum Powder BAG - Regular 40 kg</text>
-      <text x="40" y="202" font-size="13" font-weight="bold" fill="%230f766e">Verified Quantity: 750 BAG (30 Tons)</text>
-      
-      <rect x="40" y="225" width="520" height="110" fill="%23f8fafc" stroke="%23e2e8f0" rx="8"/>
-      <text x="55" y="250" font-size="11" font-weight="bold" fill="%23334155">Truck: ${activeDriver.assignedVehiclePlate || 'T-101'} | Driver: ${activeDriver.name}</text>
-      <text x="55" y="275" font-size="11" font-weight="bold" fill="%23334155">Destination: Riyadh Exit 18 Construction Site</text>
-      <text x="55" y="300" font-size="10" fill="%2364748b">Unloaded safely at site warehouse bay 4</text>
-      <circle cx="480" cy="280" r="38" fill="none" stroke="%23059669" stroke-width="2.5" stroke-dasharray="4"/>
-      <text x="450" y="278" font-size="10" font-weight="bold" fill="%23059669">RECEIVED</text>
-      <text x="454" y="293" font-size="8" fill="%23059669">SITE GATE 3</text>
-
-      <rect x="40" y="355" width="250" height="115" fill="%23ffffff" stroke="%23cbd5e1" rx="6"/>
-      <text x="55" y="375" font-size="9" font-weight="bold" fill="%231e40af">SO BARCODE (SALES ORDER)</text>
-      <g fill="%230f172a">
-        <rect x="55" y="385" width="4" height="48"/>
-        <rect x="63" y="385" width="2" height="48"/>
-        <rect x="68" y="385" width="6" height="48"/>
-        <rect x="78" y="385" width="2" height="48"/>
-        <rect x="83" y="385" width="4" height="48"/>
-        <rect x="91" y="385" width="8" height="48"/>
-        <rect x="103" y="385" width="2" height="48"/>
-        <rect x="108" y="385" width="6" height="48"/>
-        <rect x="118" y="385" width="4" height="48"/>
-        <rect x="126" y="385" width="2" height="48"/>
-        <rect x="132" y="385" width="8" height="48"/>
-        <rect x="144" y="385" width="4" height="48"/>
-        <rect x="152" y="385" width="2" height="48"/>
-        <rect x="158" y="385" width="6" height="48"/>
-      </g>
-      <text x="110" y="455" font-size="11" font-family="monospace" font-weight="bold" fill="%230f172a">*SO-9100042352*</text>
-
-      <rect x="310" y="355" width="250" height="115" fill="%23ffffff" stroke="%23cbd5e1" rx="6"/>
-      <text x="325" y="375" font-size="9" font-weight="bold" fill="%23b45309">DN BARCODE (DELIVERY NOTE)</text>
-      <g fill="%230f172a">
-        <rect x="325" y="385" width="4" height="48"/>
-        <rect x="333" y="385" width="2" height="48"/>
-        <rect x="338" y="385" width="8" height="48"/>
-        <rect x="350" y="385" width="2" height="48"/>
-        <rect x="356" y="385" width="6" height="48"/>
-        <rect x="366" y="385" width="4" height="48"/>
-        <rect x="374" y="385" width="2" height="48"/>
-        <rect x="380" y="385" width="8" height="48"/>
-      </g>
-      <text x="370" y="455" font-size="11" font-family="monospace" font-weight="bold" fill="%230f172a">*DN-9010043436*</text>
-
-      <line x1="40" y1="495" x2="560" y2="495" stroke="%23e2e8f0" stroke-width="1"/>
-      <text x="40" y="525" font-size="11" font-weight="bold" fill="%23475569">STOREKEEPER SIGNATURE &amp; STAMP</text>
-      <path d="M 60 580 Q 90 540 140 560 T 220 550 T 300 580" fill="none" stroke="%231e3a8a" stroke-width="2.5"/>
-      <text x="60" y="610" font-size="10" font-family="cursive" fill="%231e3a8a">Hassan Al-Otaibi (Site In-charge)</text>
-    </svg>`;
-
-    setSlipImage(sampleSlipSvg);
-    setSignatureDone(true);
-    setReceiverName('Hassan Al-Otaibi');
-    setReceiverNotes('All 750 bags verified against Delivery Note. Sealed & received.');
-  };
 
   const handleQuickAddExpense = (e: React.FormEvent) => {
     e.preventDefault();
@@ -571,7 +504,7 @@ export const DriverPanelView: React.FC = () => {
                 Assigned Truck
               </span>
               <div className="font-mono font-black text-sm text-amber-300">
-                {activeDriver.assignedVehiclePlate || assignedVehicle.plateNumber || 'T-101'}
+                {activeDriver.assignedVehiclePlate || assignedVehicle.plateNumber || '—'}
               </div>
               <p className="text-[10px] text-slate-400 truncate">
                 {assignedVehicle.model || '30-Ton Flatbed'}
@@ -1184,7 +1117,7 @@ export const DriverPanelView: React.FC = () => {
                   <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
                     <span className="text-slate-500">Assigned Truck:</span>
                     <span className="font-mono font-bold text-slate-900 dark:text-white">
-                      {activeTrip.vehiclePlate || activeDriver.assignedVehiclePlate || 'T-101'}
+                      {activeTrip.vehiclePlate || activeDriver.assignedVehiclePlate || '—'}
                     </span>
                   </div>
                 </div>
@@ -1235,7 +1168,7 @@ export const DriverPanelView: React.FC = () => {
                 Assigned Loads &amp; Schedule (الحمولات وجدول الرحلات)
               </h3>
               <p className="text-xs text-slate-500">
-                Dispatches assigned to {activeDriver.name} on Truck {activeDriver.assignedVehiclePlate || 'T-101'}.
+                Dispatches assigned to {activeDriver.name} on Truck {activeDriver.assignedVehiclePlate || '—'}.
               </p>
             </div>
 
@@ -1959,26 +1892,6 @@ export const DriverPanelView: React.FC = () => {
             </div>
 
             <div className="p-6 overflow-y-auto space-y-4 text-xs">
-              {/* 1-Click Upload Physical Sample Slip */}
-              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 flex items-center justify-between gap-3">
-                <div>
-                  <span className="font-bold text-slate-900 dark:text-white block">
-                    Quick Sample Slip
-                  </span>
-                  <span className="text-slate-600 dark:text-slate-300 text-[11px]">
-                    Auto-fill stamped &amp; signed Gypsum slip
-                  </span>
-                </div>
-                <button
-                  id="load-sample-slip-btn"
-                  onClick={handleSampleSlipUpload}
-                  className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Attach Stamped Slip</span>
-                </button>
-              </div>
-
               {/* Upload Drop Zone / Camera Capture */}
               <div
                 onClick={() => fileInputRef.current?.click()}

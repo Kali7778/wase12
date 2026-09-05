@@ -251,45 +251,6 @@ export const BrokerLoadModal: React.FC<BrokerLoadModalProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // Attach sample mock slip
-  const handleAttachSampleSlip = () => {
-    const sampleSlip = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800" viewBox="0 0 600 800" style="background:%23fafafa;font-family:sans-serif;">
-      <rect width="600" height="800" fill="%23ffffff" stroke="%23cbd5e1" stroke-width="4"/>
-      <rect x="25" y="25" width="550" height="70" fill="%231e293b" rx="8"/>
-      <text x="45" y="55" fill="%23ffffff" font-size="18" font-weight="bold">BROKER CONSIGNMENT NOTE &amp; SLIP</text>
-      <text x="45" y="78" fill="%2338bdf8" font-size="12">Multi-Drop Logistics Manifest | DN: ${dnNumber}</text>
-      <text x="420" y="65" fill="%23facc15" font-size="14" font-weight="bold">${slipDate}</text>
-      
-      <text x="40" y="130" font-size="12" font-weight="bold" fill="%23334155">Broker Company:</text>
-      <text x="180" y="130" font-size="13" font-weight="bold" fill="%230f172a">${brokerName || 'Al-Futtaim Freight Brokers'}</text>
-      
-      <text x="40" y="160" font-size="12" font-weight="bold" fill="%23334155">Cargo / Material:</text>
-      <text x="180" y="160" font-size="13" font-weight="bold" fill="%230f172a">${materialItem || 'Special Gypsum Board'}</text>
-
-      <text x="40" y="190" font-size="12" font-weight="bold" fill="%23334155">Pickup Depot:</text>
-      <text x="180" y="190" font-size="13" font-weight="bold" fill="%230369a1">${pickupLocation || 'Yanbu Terminal'}</text>
-
-      <line x1="40" y1="215" x2="560" y2="215" stroke="%23e2e8f0" stroke-width="2"/>
-
-      <text x="40" y="245" font-size="13" font-weight="bold" fill="%231e293b">Assigned Drops Schedule:</text>
-      ${dropLocations.map((d, i) => `
-        <rect x="40" y="${265 + i * 45}" width="520" height="36" fill="%23f8fafc" stroke="%23e2e8f0" rx="4"/>
-        <text x="55" y="${288 + i * 45}" font-size="12" font-weight="bold" fill="%23475569">Stop #${d.stopNumber}:</text>
-        <text x="120" y="${288 + i * 45}" font-size="12" font-weight="bold" fill="%230f172a">${d.dropLocation || 'Site Point'}</text>
-        <text x="420" y="${288 + i * 45}" font-size="12" font-weight="bold" fill="%23059669">${d.deliveryQty} ${d.unit || 'BAG'}</text>
-      `).join('')}
-
-      <rect x="40" y="650" width="240" height="90" fill="none" stroke="%23cbd5e1" stroke-dasharray="4" rx="6"/>
-      <text x="50" y="675" font-size="10" font-weight="bold" fill="%2364748b">DISPATCHER STAMP &amp; SIGN</text>
-      
-      <rect x="320" y="650" width="240" height="90" fill="none" stroke="%23cbd5e1" stroke-dasharray="4" rx="6"/>
-      <text x="330" y="675" font-size="10" font-weight="bold" fill="%2364748b">DRIVER ACKNOWLEDGMENT</text>
-    </svg>`;
-
-    setAttachedPdfUrl(sampleSlip);
-    setAttachedPdfName(`${dnNumber}_Consignment_Slip.pdf`);
-    showToast('Sample PDF Generated', 'Official Broker Consignment Slip attached.', 'success');
-  };
 
   // Form submission
   const handleSubmit = (e: React.FormEvent) => {
@@ -882,14 +843,6 @@ export const BrokerLoadModal: React.FC<BrokerLoadModalProps> = ({
                     className="hidden"
                   />
                 </label>
-
-                <button
-                  type="button"
-                  onClick={handleAttachSampleSlip}
-                  className="px-3.5 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer"
-                >
-                  Generate Sample Slip
-                </button>
 
                 {attachedPdfUrl && (
                   <button

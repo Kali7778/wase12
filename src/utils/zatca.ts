@@ -57,7 +57,7 @@ export function generateZatcaTlvBase64(
     return result;
   };
 
-  const tag1 = toTlv(1, sellerName || 'LogiFlow Transport & Logistics Co.');
+  const tag1 = toTlv(1, sellerName || '—');
   const tag2 = toTlv(2, vatNumber || '300881928300003');
   const tag3 = toTlv(3, timestamp || new Date().toISOString());
   const tag4 = toTlv(4, typeof totalAmountWithVat === 'number' ? totalAmountWithVat.toFixed(2) : String(totalAmountWithVat));

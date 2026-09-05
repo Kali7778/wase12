@@ -215,7 +215,7 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({ isOpen, onClose }) =
     if (cust) {
       setDropMode('manual');
       setManualDestName(cust.name + ' - Site Receiving Gate');
-      setManualDestCity(cust.city || 'Riyadh');
+      setManualDestCity(cust.city || '—');
       setManualDestAddress(cust.address || `${cust.city}, Industrial Sector`);
       const cityPreset = saudiCityPresets[cust.city];
       if (cityPreset) {
@@ -321,7 +321,7 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({ isOpen, onClose }) =
         id: `loc_origin_manual_${Date.now()}`,
         name: manualOriginName.trim() || `${manualOriginCity} Pickup Hub`,
         nameAr: manualOriginNameAr.trim() || `${manualOriginCity} موقع التحميل`,
-        city: manualOriginCity.trim() || 'Riyadh',
+        city: manualOriginCity.trim() || '',
         lat: Number(manualOriginLat) || 24.6408,
         lng: Number(manualOriginLng) || 46.8225,
         address: manualOriginAddress.trim() || `${manualOriginCity} Industrial Area, Saudi Arabia`,
@@ -350,7 +350,7 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({ isOpen, onClose }) =
         id: `loc_dest_manual_${Date.now()}`,
         name: manualDestName.trim() || `${manualDestCity} Drop Site`,
         nameAr: manualDestNameAr.trim() || `${manualDestCity} موقع التسليم`,
-        city: manualDestCity.trim() || 'Jeddah',
+        city: manualDestCity.trim() || '',
         lat: Number(manualDestLat) || 21.4644,
         lng: Number(manualDestLng) || 39.1672,
         address: manualDestAddress.trim() || `${manualDestCity} Delivery Site, Saudi Arabia`,

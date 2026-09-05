@@ -916,7 +916,7 @@ export const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
                       </div>
                       <div className="flex justify-between pt-2">
                         <span className="text-slate-500">City / Province:</span>
-                        <span className="font-semibold text-slate-900 dark:text-white">{customer.city || 'Riyadh'}</span>
+                        <span className="font-semibold text-slate-900 dark:text-white">{customer.city || '—'}</span>
                       </div>
                       <div className="flex justify-between pt-2">
                         <span className="text-slate-500">Address / Yard:</span>

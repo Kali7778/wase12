@@ -16,10 +16,10 @@ import {
 } from 'lucide-react';
 
 export const BackupSyncView: React.FC = () => {
-  const { exportStateJson, importStateJson, resetDemoData, showToast } = useApp();
+  const { exportStateJson, importStateJson, resetAllData, showToast } = useApp();
 
-  const [supabaseUrl, setSupabaseUrl] = useState('https://xyzcompany.supabase.co');
-  const [supabaseKey, setSupabaseKey] = useState('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_anon_key_for_setup');
+  const [supabaseUrl, setSupabaseUrl] = useState(import.meta.env.VITE_SUPABASE_URL ?? '');
+  const [supabaseKey, setSupabaseKey] = useState(import.meta.env.VITE_SUPABASE_ANON_KEY ?? '');
   const [isTestingPing, setIsTestingPing] = useState(false);
   const [pingSuccess, setPingSuccess] = useState<boolean | null>(null);
   const [copiedSql, setCopiedSql] = useState(false);
@@ -325,14 +325,14 @@ create policy "Allow authenticated users all access" on public.zatca_invoices fo
                   className="px-4 py-2.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
                 >
                   <RefreshCw className="w-4 h-4" />
-                  <span>Reset Demo</span>
+                  <span>Clear All Data</span>
                 </button>
               ) : (
                 <div className="flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150">
                   <button
-                    id="reset-demo-confirm-btn"
+                    id="reset-all-data-confirm-btn"
                     onClick={() => {
-                      resetDemoData();
+                      resetAllData();
                       setShowResetConfirm(false);
                     }}
                     className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black shadow-md shadow-rose-600/30 flex items-center gap-1 cursor-pointer transition-all active:scale-95"

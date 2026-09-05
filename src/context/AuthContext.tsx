@@ -52,6 +52,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (_event, next) => {
       if (!active) return;
+      // The profile lookup is a second round trip. Hold the loading state until
+      // it settles, or the gate sees a session with no profile and reports the
+      // account as missing.
+      setLoading(true);
       setSession(next);
       await loadProfile(next?.user.id);
       if (active) setLoading(false);

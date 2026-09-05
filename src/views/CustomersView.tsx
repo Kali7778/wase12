@@ -377,7 +377,7 @@ export const CustomersView: React.FC = () => {
 
                         {/* Address & City */}
                         <td className="p-3.5 whitespace-nowrap text-slate-600 dark:text-slate-300">
-                          <div className="font-semibold text-slate-900 dark:text-white">{cust.city || 'Riyadh'}</div>
+                          <div className="font-semibold text-slate-900 dark:text-white">{cust.city || '—'}</div>
                           <div className="text-[10px] text-slate-400 truncate max-w-[130px]">{cust.address}</div>
                         </td>
 
@@ -610,7 +610,7 @@ export const CustomersView: React.FC = () => {
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-xs space-y-1 text-slate-600 dark:text-slate-300">
                   <div className="flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="truncate">{cust.city || 'Riyadh'} • {cust.address}</span>
+                    <span className="truncate">{cust.city || '—'} • {cust.address}</span>
                   </div>
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="flex items-center gap-1">

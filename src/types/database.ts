@@ -100,6 +100,12 @@ export type Database = {
       };
       delivery_notes: {
         Row: {
+          assigned_to: string | null;
+          sent_at: string | null;
+          sent_by: string | null;
+          source_file_type: string | null;
+          upload_batch_id: string | null;
+          workflow_status: Database['public']['Enums']['dn_workflow_status'];
           arrived_at: string | null;
           created_at: string;
           created_by: string | null;
@@ -126,6 +132,12 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          assigned_to?: string | null;
+          sent_at?: string | null;
+          sent_by?: string | null;
+          source_file_type?: string | null;
+          upload_batch_id?: string | null;
+          workflow_status?: Database['public']['Enums']['dn_workflow_status'];
           arrived_at?: string | null;
           created_at?: string;
           created_by?: string | null;
@@ -152,6 +164,12 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          assigned_to?: string | null;
+          sent_at?: string | null;
+          sent_by?: string | null;
+          source_file_type?: string | null;
+          upload_batch_id?: string | null;
+          workflow_status?: Database['public']['Enums']['dn_workflow_status'];
           arrived_at?: string | null;
           created_by?: string | null;
           customer_name?: string | null;
@@ -299,6 +317,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      upload_batches: {
+        Row: {
+          batch_date: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          note: string | null;
+        };
+        Insert: {
+          batch_date?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          note?: string | null;
+        };
+        Update: { batch_date?: string; note?: string | null };
+        Relationships: [];
+      };
+      dn_workflow_log: {
+        Row: {
+          actor: string | null;
+          assigned_to: string | null;
+          created_at: string;
+          delivery_note_id: string;
+          from_status: Database['public']['Enums']['dn_workflow_status'] | null;
+          id: string;
+          note: string | null;
+          to_status: Database['public']['Enums']['dn_workflow_status'];
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       user_tbl: {
         Row: {
           account_created_at: string;
@@ -443,6 +494,51 @@ export type Database = {
         };
         Returns: Database['public']['Tables']['delivery_note_lines']['Row'];
       };
+      create_delivery_note: {
+        Args: {
+          p_dn_number: string;
+          p_so_number: string;
+          p_supplier_code: string;
+          p_item_number: string;
+          p_item_description: string;
+          p_uom: string;
+          p_pdf_qty: number;
+          p_customer_number?: string | null;
+          p_customer_name?: string | null;
+          p_shipping_ref?: string | null;
+          p_ship_from?: string | null;
+          p_ship_to?: string | null;
+          p_salesman?: string | null;
+          p_print_date?: string | null;
+          p_order_date?: string | null;
+          p_batch_id?: string | null;
+          p_pdf_path?: string | null;
+          p_pdf_file_name?: string | null;
+          p_pdf_sha256?: string | null;
+          p_file_type?: string;
+          p_extraction?: Database['public']['Enums']['extraction_method'];
+          p_confidence?: number | null;
+          p_needs_review?: string[];
+        };
+        Returns: Database['public']['Tables']['delivery_notes']['Row'];
+      };
+      send_dn_to_gm: {
+        Args: { p_dn_ids: string[]; p_gm_id?: string | null; p_note?: string | null };
+        Returns: number;
+      };
+      decide_dn: {
+        Args: { p_dn_id: string; p_approve: boolean; p_note?: string | null };
+        Returns: Database['public']['Tables']['delivery_notes']['Row'];
+      };
+      check_dn_duplicates: {
+        Args: { p_sha256: string[] | null; p_dn_numbers: string[] | null };
+        Returns: {
+          dn_number: string;
+          pdf_sha256: string | null;
+          uploaded_at: string;
+          workflow_status: Database['public']['Enums']['dn_workflow_status'];
+        }[];
+      };
       create_app_user: {
         Args: {
           p_email: string;
@@ -477,6 +573,7 @@ export type Database = {
     };
     Enums: {
       dn_status: 'not_arrived' | 'partial' | 'arrived' | 'cancelled';
+      dn_workflow_status: 'draft' | 'sent_to_gm' | 'gm_approved' | 'rejected';
       extraction_method: 'pdf_text' | 'vision' | 'manual';
       movement_direction: 'IN' | 'OUT';
       movement_type:
@@ -521,6 +618,7 @@ export type Enums<T extends keyof PublicSchema['Enums']> = PublicSchema['Enums']
 /** Enum values at runtime (for dropdowns and validation). */
 export const DB_ENUMS = {
   dnStatus: ['not_arrived', 'partial', 'arrived', 'cancelled'],
+  dnWorkflowStatus: ['draft', 'sent_to_gm', 'gm_approved', 'rejected'],
   extractionMethod: ['pdf_text', 'vision', 'manual'],
   movementDirection: ['IN', 'OUT'],
   movementType: [

@@ -110,7 +110,7 @@ export const ZatcaAddInvoiceModal: React.FC<ZatcaAddInvoiceModalProps> = ({
           setBuyerName(c.name);
           setBuyerVatNumber(c.vatNumber || '300881928300003');
           setBuyerAddress(c.address || 'Saudi Arabia');
-          setBuyerPhone(c.phone || '+966 50 000 0000');
+          setBuyerPhone(c.phone || '—');
         }
       }
     }

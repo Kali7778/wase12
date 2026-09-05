@@ -745,7 +745,7 @@ CREATE INDEX IF NOT EXISTS idx_zatca_scans_date ON zatca_qr_scans(scanned_at);
                           <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">
                             <span className="font-mono text-xs font-semibold">{inv.dnNumber || inv.tripNumber || 'N/A'}</span>
                             <p className="text-[10px] text-slate-400">
-                              {inv.pickupLocation || 'Jeddah'} → {inv.dropLocation || 'Riyadh'}
+                              {inv.pickupLocation || '—'} → {inv.dropLocation || '—'}
                             </p>
                           </td>
                           <td className="py-3.5 px-4 text-right font-mono text-slate-700 dark:text-slate-300 font-medium">

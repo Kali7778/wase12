@@ -149,7 +149,7 @@ export const StockTraceabilityDrawer: React.FC<StockTraceabilityDrawerProps> = (
             <div className="text-[11px] text-slate-600 dark:text-slate-300 font-mono leading-relaxed space-y-1">
               <div className="flex items-center gap-2">
                 <span className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 font-bold text-indigo-600">1</span>
-                <span>Supplier ({item.sourceSupplier || 'El-Khayyat Gypsum Plant'}) → TLB Slip ({item.dnNumber || 'DN-001'})</span>
+                <span>Supplier ({item.sourceSupplier || '—'}) → TLB Slip ({item.dnNumber || 'DN-001'})</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 font-bold text-indigo-600">2</span>

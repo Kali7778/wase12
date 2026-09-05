@@ -102,11 +102,11 @@ export const ManagerTripControlModal: React.FC<ManagerTripControlModalProps> = (
       setSelectedDnNumber(trip.dnNumber || trip.deliveryNote?.dnNumber || '');
       setDriverId(trip.driverId || '');
       setVehicleId(trip.vehicleId || '');
-      setPickupName(trip.origin.name || trip.origin.city || 'Riyadh');
-      setPickupCity(trip.origin.city || 'Riyadh');
+      setPickupName(trip.origin.name || trip.origin.city || '—');
+      setPickupCity(trip.origin.city || '—');
       setPickupAddress(trip.origin.address || '');
-      setDropName(trip.destination.name || trip.destination.city || 'Dammam');
-      setDropCity(trip.destination.city || 'Dammam');
+      setDropName(trip.destination.name || trip.destination.city || '—');
+      setDropCity(trip.destination.city || '—');
       setDropAddress(trip.destination.address || '');
       setQuantity(trip.quantity || trip.deliveryNote?.packagesCount || 750);
       setUom(trip.uom || 'BAG');

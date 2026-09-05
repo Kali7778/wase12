@@ -52,7 +52,7 @@ export const CustomerInvoiceModal: React.FC<CustomerInvoiceModalProps> = ({
     window.print();
   };
 
-  const invoiceNumber = inv.invoiceNumber || 'INV-2026-000';
+  const invoiceNumber = inv.invoiceNumber || '—';
   const invoiceDate = inv.invoiceDate || inv.issueDate || '2026-08-19';
   const customerName = inv.customerName || inv.buyerName || 'Customer Client';
   const dnNumber = inv.dnNumber || inv.tripNumber || inv.loadNumber || 'DN-2026-000';
@@ -210,14 +210,14 @@ export const CustomerInvoiceModal: React.FC<CustomerInvoiceModalProps> = ({
                 </div>
                 <div>
                   <h2 className="text-xl font-black text-slate-900 dark:text-white">
-                    {companySettings.companyName || 'LogiFlow Logistics & Fleet'}
+                    {companySettings.companyName || '—'}
                   </h2>
                   <p className="text-xs text-slate-500">Commercial Invoicing &amp; Operations</p>
                 </div>
               </div>
               <div className="mt-2 text-xs text-slate-600 dark:text-slate-400">
-                <p>{companySettings.address || 'King Fahd Road, Al Olaya'}, {companySettings.city || 'Riyadh'}</p>
-                <p>Phone: {companySettings.phone || '+966 11 456 7890'}</p>
+                <p>{companySettings.address || '—'}, {companySettings.city || '—'}</p>
+                <p>Phone: {companySettings.phone || '—'}</p>
               </div>
             </div>
 

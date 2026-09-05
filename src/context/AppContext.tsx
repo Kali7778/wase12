@@ -36,9 +36,7 @@ import {
   InvoicePaymentStatus,
   CustomerInvoice,
   ZatcaQrScan,
-  InvoiceStatusHistory,
-  DnImportMode,
-  SupplierInventoryItem,
+  InvoiceStatusHistory,  SupplierInventoryItem,
   SupplierStockTransfer,
   GypsumInventoryItem,
   GypsumMovement,
@@ -71,17 +69,19 @@ import {
   initialMasterAudits,
   initialApprovalRequests,
   initialLocations,
-  saudiLocations,
   initialZatcaQrScans,
   initialInvoiceStatusHistory,
   initialBrokerLoads,
   initialDriverLoadRequests,
-} from '../mockData';
+} from '../emptyState';
+import { useAuth } from './AuthContext';
 import { translations } from '../utils/i18n';
 import { generateTaxInvoiceQrBase64 } from '../utils/zatca';
 import confetti from 'canvas-confetti';
 
 export type NavView =
+  | 'adminSlips'
+  | 'slipReview'
   | 'ceoPanel'
   | 'gmPanel'
   | 'managerPanel'
@@ -123,7 +123,6 @@ interface AppContextType {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   activeRole: UserRole;
-  setActiveRole: (role: UserRole) => void;
   isAdmin: boolean;
   canEdit: boolean;
   canDelete: boolean;
@@ -521,8 +520,7 @@ interface AppContextType {
   deleteUser: (id: string) => void;
 
   // Data management
-  resetToDemoData: () => void;
-  resetDemoData: () => void;
+  resetAllData: () => void;
   exportDatabaseBackup: () => void;
   exportStateJson: () => void;
   importDatabaseBackup: (jsonData: string) => boolean;
@@ -558,11 +556,6 @@ interface AppContextType {
   setSelectedInboundDn: (dn: InboundDeliveryNote | null) => void;
 
   // AI Delivery Note Import Modal Controls
-  isAiDnImportModalOpen: boolean;
-  aiDnImportInitialMode: DnImportMode;
-  openAiDnImportModal: (mode?: DnImportMode) => void;
-  closeAiDnImportModal: () => void;
-
   // Broker Load Management
   brokerLoads: BrokerLoad[];
   addBrokerLoad: (load: Omit<BrokerLoad, 'id' | 'createdAt' | 'updatedAt'>) => BrokerLoad;
@@ -590,14 +583,20 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'logiflow_admin_state_v2';
+// Bumped from v2 when the bundled sample data was removed: browsers that had
+// already cached the demo records would otherwise keep showing them.
+const STORAGE_KEY = 'logiflow_admin_state_v3';
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [currentView, setCurrentView] = useState<NavView>('warehouse');
+  const [currentView, setCurrentView] = useState<NavView>('dashboard');
   const [language, setLanguageState] = useState<Language>('en');
   const [isDark, setIsDarkState] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeRole, setActiveRole] = useState<UserRole>('warehouse_mgr');
+  // The active role is the signed-in user's real role from user_tbl. It is not
+  // selectable: the database enforces the same role through RLS, so a value
+  // chosen in the UI would only ever disagree with what the server allows.
+  const { role: authRole } = useAuth();
+  const activeRole: UserRole = (authRole ?? 'driver') as UserRole;
   const [selectedDriverId, setSelectedDriverId] = useState<string>('drv_1'); // Ahmed by default
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -609,18 +608,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [selectedInboundDn, setSelectedInboundDn] = useState<InboundDeliveryNote | null>(null);
 
   // AI Delivery Note Modal State
-  const [isAiDnImportModalOpen, setIsAiDnImportModalOpen] = useState<boolean>(false);
-  const [aiDnImportInitialMode, setAiDnImportInitialMode] = useState<DnImportMode>('pdf');
-
-  const openAiDnImportModal = (mode: DnImportMode = 'pdf') => {
-    setAiDnImportInitialMode(mode);
-    setIsAiDnImportModalOpen(true);
-  };
-
-  const closeAiDnImportModal = () => {
-    setIsAiDnImportModalOpen(false);
-  };
-
   // Collections state
   const [trips, setTrips] = useState<Trip[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY + '_trips');
@@ -2011,8 +1998,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const driverObj = drivers.find((d) => d.id === params.driverId);
     const vehicleObj = vehicles.find((v) => v.id === params.vehicleId);
-    const driverName = driverObj?.name || params.driverName || 'Ahmed';
-    const vehiclePlate = vehicleObj?.plateNumber || params.vehiclePlate || 'T-101';
+    const driverName = driverObj?.name || params.driverName || '—';
+    const vehiclePlate = vehicleObj?.plateNumber || params.vehiclePlate || '—';
 
     const loadId = `CL-${Math.floor(1000 + Math.random() * 9000)}`;
     const nextTripNumber = `TRP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -2044,7 +2031,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       reservedQuantity: qty,
       companyLoadStage: 'driver_assigned',
       dnNumber: targetItem?.dnNumber || cleanDn,
-      companyName: params.customerName || 'LogiFlow Internal Operations',
+      companyName: params.customerName || '',
       customerId: params.customerId || 'cust_internal',
       customerName: params.customerName || 'Admin Warehouse Inward',
       itemName: params.itemName || params.product || targetItem?.name || 'Gypsum Powder',
@@ -2056,7 +2043,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       destination: params.dropLocation,
       driverId: params.driverId,
       driverName: driverName,
-      driverPhone: driverObj?.phone || '+966 50 123 4567',
+      driverPhone: driverObj?.phone || '',
       vehicleId: params.vehicleId,
       vehiclePlate: vehiclePlate,
       vehicleType: vehicleObj?.type || 'trailer_30t',
@@ -2175,14 +2162,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const driverObj = drivers.find((d) => d.id === params.driverId);
     const vehicleObj = vehicles.find((v) => v.id === params.vehicleId);
-    const driverName = params.driverName || driverObj?.name || 'Ahmed';
+    const driverName = params.driverName || driverObj?.name || '—';
     const vehiclePlate = params.vehiclePlate || vehicleObj?.plateNumber || 'Truck 12';
 
     const originPoint: LocationPoint = params.pickupLocation || {
       id: 'loc_pickup_' + Date.now(),
       name: params.loadType === 'gypsum' ? (params.supplier || 'Supplier A') : (params.supplierSource || 'Supplier B'),
       city: 'Rabigh',
-      address: params.loadType === 'gypsum' ? (params.supplier || 'El-Khayyat Gypsum Industrial Facility') : (params.supplierSource || 'Supplier Source Terminal'),
+      address: params.loadType === 'gypsum' ? (params.supplier || '') : (params.supplierSource || 'Supplier Source Terminal'),
       lat: 22.8012,
       lng: 39.0145,
     };
@@ -2232,7 +2219,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       destination: destPoint,
       driverId: params.driverId,
       driverName: driverName,
-      driverPhone: driverObj?.phone || '+966 50 123 4567',
+      driverPhone: driverObj?.phone || '',
       vehicleId: params.vehicleId,
       vehiclePlate: vehiclePlate,
       vehicleType: vehicleObj?.type || 'trailer_30t',
@@ -3465,7 +3452,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const resetGypsumInventory = () => {
     setGypsumInventory(initialGypsumInventory);
     setGypsumMovements(initialGypsumMovements);
-    showToast('Gypsum Inventory Reset', 'Reset to initial sample state (750 BAG Available).', 'info');
+    showToast('Gypsum Inventory Cleared', 'All gypsum stock and movements have been removed.', 'info');
   };
 
   // =========================================================================
@@ -3533,7 +3520,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           sellingPrice: 18,
           barcode: itemData.barcode || `628100${Math.floor(1000000 + Math.random() * 9000000)}`,
           dnNumber: cleanDn,
-          sourceSupplier: itemData.supplier || 'El-Khayyat Gypsum Plant',
+          sourceSupplier: itemData.supplier || '',
           isTemperatureControlled: false,
           lastStockCheck: new Date().toISOString().split('T')[0],
         };
@@ -3562,7 +3549,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         referenceDoc: cleanDn ? `DN-${cleanDn}` : `SO-${cleanSo}`,
         driverName: 'Supplier Direct Transfer',
         barcode: itemData.barcode || '6281002938106',
-        source: itemData.supplier || 'El-Khayyat Gypsum Plant',
+        source: itemData.supplier || '',
         performedBy: actor,
         status: 'Available',
         unitPrice: 14,
@@ -3576,8 +3563,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newSupplierItem: SupplierInventoryItem = {
       ...itemData,
       id: supId,
-      supplier: itemData.supplier || 'El-Khayyat Gypsum Plant',
-      supplierName: itemData.supplierName || itemData.supplier || 'El-Khayyat Gypsum Plant',
+      supplier: itemData.supplier || '',
+      supplierName: itemData.supplierName || itemData.supplier || '',
       tlbNo: itemData.tlbNo || `TLB-${String(supplierInventory.length + 1).padStart(3, '0')}`,
       dnNo: cleanDn,
       soNo: cleanSo,
@@ -3859,7 +3846,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           sellingPrice: params.sellingPrice || 18,
           barcode: params.barcode || `628100${Math.floor(1000000 + Math.random() * 9000000)}`,
           dnNumber: cleanDn,
-          sourceSupplier: params.source || 'El-Khayyat Gypsum Plant',
+          sourceSupplier: params.source || '',
           isTemperatureControlled: false,
           lastStockCheck: new Date().toISOString().split('T')[0],
         };
@@ -3888,10 +3875,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       newQuantityOnHand: openingQty + qty,
       referenceDoc: cleanDn.startsWith('DN-') ? cleanDn : `DN-${cleanDn}`,
       driverId: driver?.id,
-      driverName: driver?.name || params.driverName || 'Ahmed',
-      vehiclePlate: vehicle?.plateNumber || params.vehiclePlate || 'T-101',
+      driverName: driver?.name || params.driverName || '',
+      vehiclePlate: vehicle?.plateNumber || params.vehiclePlate || '',
       barcode: params.barcode || '6281002938106',
-      source: params.source || 'El-Khayyat Gypsum Plant',
+      source: params.source || '',
       performedBy: actor,
       status: 'Available',
       unitPrice: params.unitCost || 14,
@@ -4020,8 +4007,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       customerId: params.customerId,
       customerName: params.customerName,
       driverId: params.driverId || 'drv_1',
-      driverName: params.driverName || 'Ahmed',
-      vehiclePlate: params.vehiclePlate || 'T-101',
+      driverName: params.driverName || '',
+      vehiclePlate: params.vehiclePlate || '',
       barcode: target?.barcode || '6281002938106',
       source: target ? `Warehouse ${target.aisle || 'Bay B-01'}` : 'Central Yard',
       performedBy: actor,
@@ -4153,7 +4140,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       shipFrom: target ? `Warehouse (${target.aisle || 'Bay B-01'})` : 'Central Logistics Hub',
       salesman: actor,
       companyName: params.customerName,
-      customerNumber: params.customerId || 'CUST-OUT',
+      customerNumber: params.customerId || '',
       customerId: params.customerId,
       itemNumber: target?.sku || params.itemSku || 'TLB-MAIN-001',
       itemName: target?.name || params.itemName || 'TLB (Truck Load Bulk)',
@@ -4163,8 +4150,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       inOutType: 'OUT',
       status: 'verified',
       warehouseLocation: target?.aisle || 'Bay B-01 / Dispatched',
-      driverName: params.driverName || 'Ahmed',
-      vehiclePlate: params.vehiclePlate || 'T-101',
+      driverName: params.driverName || '',
+      vehiclePlate: params.vehiclePlate || '',
       importedAt: timestamp,
       notes: params.notes || `Stock Out customer sale ${nextSaleNum} for ${params.customerName}.`,
     };
@@ -4292,7 +4279,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         id: 'loc_shift_' + shiftId,
         name: `${params.customerName} Drop Site`,
         nameAr: params.customerNameAr || params.customerName,
-        city: params.destinationCity || 'Riyadh',
+        city: params.destinationCity || '',
         lat: params.destinationLat || 24.65,
         lng: params.destinationLng || 46.8,
         address: params.destinationAddress || `${params.destinationCity} Customer Site`,
@@ -4412,7 +4399,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const targetDriver = params.newDriverId ? drivers.find((d) => d.id === params.newDriverId) : undefined;
     const finalDriverId = params.newDriverId || trip.driverId;
     const finalDriverName = targetDriver?.name || params.newDriverName || trip.driverName;
-    const finalDriverPhone = targetDriver?.phone || trip.driverPhone || '+966 50 000 0000';
+    const finalDriverPhone = targetDriver?.phone || trip.driverPhone || '—';
 
     const targetVehicle = params.newVehicleId ? vehicles.find((v) => v.id === params.newVehicleId) : undefined;
     const finalVehicleId = params.newVehicleId || trip.vehicleId;
@@ -4425,13 +4412,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       id: 'loc_cust_shift_' + Date.now(),
       name: `${params.newCustomerName} Site`,
       nameAr: params.newCustomerName,
-      city: params.newCustomerCity || trip.destination.city || 'Riyadh',
+      city: params.newCustomerCity || trip.destination.city || '',
       lat: trip.destination.lat || 24.7136,
       lng: trip.destination.lng || 46.6753,
-      address: params.newCustomerAddress || `${params.newCustomerCity || 'Riyadh'} Site`,
+      address: params.newCustomerAddress || `${params.newCustomerCity || ''} Site`,
       category: 'customer',
       isCustom: true,
-      phone: params.newCustomerPhone || '+966 50 000 0000',
+      phone: params.newCustomerPhone || '',
     };
 
     const shiftEntry: CustomerShiftHistoryEntry = {
@@ -4634,12 +4621,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               return {
                 ...s,
                 shiftStatus: 'customer_delivered' as const,
-                podImageUrl:
-                  params.podImageUrl ||
-                  'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&auto=format&fit=crop&q=80',
+                // Proof of delivery is whatever the driver actually captured — never a stand-in.
+                podImageUrl: params.podImageUrl,
                 podSignedAt: timestamp,
                 podBarcodeScanned: params.podBarcodeScanned || originalDn,
-                driverConfirmationNotes: params.receiverNotes || 'Customer received 300 bags in sound condition.',
+                driverConfirmationNotes: params.receiverNotes,
               };
             }
             return s;
@@ -4713,7 +4699,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       buyerVatNumber: shiftRecord.shiftedCustomer.vatNumber || '300881928300003',
       buyerCrNumber: shiftRecord.shiftedCustomer.crNumber || '1010882736',
       buyerAddress: shiftRecord.shiftedCustomer.address || 'Kingdom of Saudi Arabia',
-      buyerPhone: shiftRecord.shiftedCustomer.phone || '+966 50 000 0000',
+      buyerPhone: shiftRecord.shiftedCustomer.phone || '',
       items: [
         {
           id: 'item_1',
@@ -4855,7 +4841,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       driverName: trip.driverName,
       vehiclePlate: trip.vehiclePlate,
       barcode: target?.barcode || originalDn,
-      source: `${trip.origin.name || 'El-Khayyat Gypsum Plant'} → Inward`,
+      source: `${trip.origin.name || '—'} → Inward`,
       performedBy: actor,
       status: 'Available',
       auditHash: hash,
@@ -5035,12 +5021,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         uom: noteData.uom || 'BAG',
         origin: {
           id: 'loc_origin_' + Date.now(),
-          name: noteData.shipFrom || 'El-Khayyat Gypsum Plant',
+          name: noteData.shipFrom || '',
           nameAr: noteData.shipFrom || 'مصنع الخياط للجبس',
           city: 'Rabigh / Western Corridor',
           lat: 22.8012,
           lng: 39.0145,
-          address: noteData.shipFrom || 'El-Khayyat Industrial Complex Gate 2',
+          address: noteData.shipFrom || '',
         },
         destination: {
           id: 'loc_dest_' + Date.now(),
@@ -5052,10 +5038,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           address: 'Riyadh Exit 18, Construction Area',
         },
         driverId: targetDriver ? targetDriver.id : 'drv_1',
-        driverName: targetDriver ? targetDriver.name : (noteData.driverName || 'Ahmed'),
+        driverName: targetDriver ? targetDriver.name : (noteData.driverName || ''),
         driverPhone: targetDriver ? targetDriver.phone : '+966 50 123 4567',
         vehicleId: targetVehicle ? targetVehicle.id : 'veh_1',
-        vehiclePlate: targetVehicle ? targetVehicle.plateNumber : (noteData.vehiclePlate || 'T-101'),
+        vehiclePlate: targetVehicle ? targetVehicle.plateNumber : (noteData.vehiclePlate || ''),
         vehicleType: 'trailer_30t',
         customerId: companyId,
         customerName: cleanCompany,
@@ -5068,7 +5054,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           dnNumber: noteData.dnNumber,
           issueDate: noteData.orderDate || new Date().toISOString().split('T')[0],
           expectedDelivery: new Date().toISOString().split('T')[0] + ' 19:30',
-          senderName: noteData.shipFrom || 'El-Khayyat Gypsum Plant',
+          senderName: noteData.shipFrom || '',
           senderAddress: noteData.shipFrom || 'Plant Sector 3',
           senderContact: '+966 12 422 9900',
           receiverName: cleanCompany,
@@ -5112,8 +5098,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         id: dnId,
         tripId: tripId,
         driverId: targetDriver ? targetDriver.id : 'drv_1',
-        driverName: targetDriver ? targetDriver.name : (noteData.driverName || 'Ahmed'),
-        vehiclePlate: targetVehicle ? targetVehicle.plateNumber : (noteData.vehiclePlate || 'T-101'),
+        driverName: targetDriver ? targetDriver.name : (noteData.driverName || ''),
+        vehiclePlate: targetVehicle ? targetVehicle.plateNumber : (noteData.vehiclePlate || ''),
         tripStep: 'loading',
         slipStatus: 'not_submitted',
         importedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
@@ -5193,7 +5179,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           barcode: noteData.barcode || `6281${(cleanSoNumber || cleanDnNumber || '9010043436').padStart(9, '0').slice(-9)}`,
           isTemperatureControlled: false,
           lastStockCheck: new Date().toISOString().split('T')[0],
-          sourceSupplier: noteData.shipFrom || 'El-Khayyat Gypsum Plant',
+          sourceSupplier: noteData.shipFrom || '',
         };
         return [newItem, ...prev];
       }
@@ -5822,7 +5808,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const createCustomTaxInvoice = (invData: Partial<TaxInvoice>): TaxInvoice => {
     const dateStr = invData.issueDate || invData.invoiceDate || new Date().toISOString().split('T')[0];
     const timeStr = invData.issueTime || new Date().toTimeString().split(' ')[0];
-    const invNumber = invData.invoiceNumber?.trim() || 'INV-' + dateStr.replace(/-/g, '') + '-' + Math.floor(100 + Math.random() * 900);
+    const invNumber = invData.invoiceNumber?.trim() || '—' + dateStr.replace(/-/g, '') + '-' + Math.floor(100 + Math.random() * 900);
     const actor = activeRole ? `${activeRole.toUpperCase()} Admin` : 'System Admin';
 
     const subtotal = Number(invData.subtotal) || 0;
@@ -6507,7 +6493,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const resetToDemoData = () => {
+  const resetAllData = () => {
     setTrips(initialTrips);
     setVehicles(initialVehicles);
     setDrivers(initialDrivers);
@@ -6527,7 +6513,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setBrokerLoads(initialBrokerLoads);
 
     localStorage.clear();
-    showToast('Demo Data Reset', 'Workspace reloaded with clean starter data.', 'info');
+    showToast('Workspace Cleared', 'All local records have been removed.', 'info');
   };
 
   // ==========================================
@@ -6917,7 +6903,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         tripNumber: nextTripNumber,
         driverId: req.driverId,
         driverName: req.driverName,
-        driverPhone: driverObj?.phone || '+966 50 123 4567',
+        driverPhone: driverObj?.phone || '',
         vehicleId: vehicleObj?.id || 'veh_001',
         vehiclePlate: req.truckNo,
         vehicleType: 'trailer_30t',
@@ -7140,7 +7126,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         searchQuery,
         setSearchQuery,
         activeRole,
-        setActiveRole,
         isAdmin,
         canEdit,
         canDelete,
@@ -7249,8 +7234,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addUser,
         updateUser,
         deleteUser,
-        resetToDemoData,
-        resetDemoData: resetToDemoData,
+        resetAllData,
         exportDatabaseBackup,
         exportStateJson: exportDatabaseBackup,
         importDatabaseBackup,
@@ -7275,12 +7259,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         selectedInvoice,
         setSelectedInvoice,
         selectedInboundDn,
-        setSelectedInboundDn,
-        isAiDnImportModalOpen,
-        aiDnImportInitialMode,
-        openAiDnImportModal,
-        closeAiDnImportModal,
-        brokerLoads,
+        setSelectedInboundDn,        brokerLoads,
         addBrokerLoad,
         updateBrokerLoad,
         deleteBrokerLoad,

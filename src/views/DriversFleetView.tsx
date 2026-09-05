@@ -69,7 +69,7 @@ export const DriversFleetView: React.FC = () => {
         name: driverData.name || 'New Driver',
         nameAr: driverData.nameAr || driverData.name || 'سائق جديد',
         employeeId: driverData.employeeId,
-        phone: driverData.phone || '+966 50 000 0000',
+        phone: driverData.phone || '',
         email: `${(driverData.name || 'driver').toLowerCase().replace(/\s+/g, '.')}@logiflow.sa`,
         nationalIdOrIqama: driverData.nationalIdOrIqama || '1098472910',
         assignedVehiclePlate: driverData.assignedVehiclePlate,
@@ -86,9 +86,7 @@ export const DriversFleetView: React.FC = () => {
         rukhsaStatus: driverData.rukhsaStatus,
         rukhsaDocument: driverData.rukhsaDocument,
         licenseCategory: driverData.licenseCategory || 'Heavy Vehicle / Trailer (نقل ثقيل)',
-        avatarUrl:
-          driverData.avatarUrl ||
-          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        avatarUrl: driverData.avatarUrl || undefined,
         status: 'available',
         baseSalary: Number(driverData.baseSalary) || 6000,
         tripAllowanceRate: 200,

@@ -39,7 +39,6 @@ import {
   ChevronDown,
   Edit2
 } from 'lucide-react';
-import { AiDeliveryNoteImportModal } from '../components/AiDeliveryNoteImportModal';
 import { InboundDeliveryNoteSlipModal } from '../components/InboundDeliveryNoteSlipModal';
 import { BarcodeRenderer, SlipBarcodePair } from '../components/BarcodeRenderer';
 import { NewCompanyLoadModal } from '../components/NewCompanyLoadModal';
@@ -69,7 +68,6 @@ export const WarehouseView: React.FC = () => {
     searchQuery: globalSearchQuery,
     language,
     activeRole,
-    openAiDnImportModal,
     setCurrentView,
     supplierInventory,
   } = useApp();
@@ -80,7 +78,6 @@ export const WarehouseView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'available_items' | 'movements'>('available_items');
 
   // Modals
-  const [showAiImportModal, setShowAiImportModal] = useState(false);
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [editingStockItem, setEditingStockItem] = useState<WarehouseItem | null>(null);
   const [stockItemToDelete, setStockItemToDelete] = useState<WarehouseItem | null>(null);
@@ -246,7 +243,7 @@ export const WarehouseView: React.FC = () => {
           {/* Primary Action Button: + Upload PDF */}
           <button
             id="btn-upload-pdf"
-            onClick={() => openAiDnImportModal('pdf')}
+            onClick={() => setCurrentView('adminSlips')}
             className="flex-1 sm:flex-none px-4 py-2.5 bg-gradient-to-r from-amber-500 via-amber-600 to-emerald-600 hover:from-amber-600 hover:to-emerald-700 active:scale-95 text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
           >
             <Sparkles className="w-4 h-4 animate-pulse" />
@@ -256,7 +253,7 @@ export const WarehouseView: React.FC = () => {
           {/* Scan DN Button */}
           <button
             id="btn-scan-dn"
-            onClick={() => openAiDnImportModal('picture')}
+            onClick={() => setCurrentView('adminSlips')}
             className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 active:scale-95 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border border-slate-300/80 dark:border-slate-700"
           >
             <Camera className="w-4 h-4 text-blue-500" />
@@ -395,7 +392,7 @@ export const WarehouseView: React.FC = () => {
 
             {/* Quick Upload Action */}
             <button
-              onClick={() => setShowAiImportModal(true)}
+              onClick={() => setCurrentView('adminSlips')}
               className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -843,7 +840,7 @@ export const WarehouseView: React.FC = () => {
                           {mov.customerName || mov.source || 'Central Inventory'}
                         </td>
                         <td className="p-3.5 text-slate-500 text-[11px] font-mono whitespace-nowrap">
-                          {mov.driverName ? `${mov.driverName} (${mov.vehiclePlate || 'T-101'})` : '—'}
+                          {mov.driverName ? `${mov.driverName} (${mov.vehiclePlate || '—'})` : '—'}
                         </td>
                         <td className="p-3.5 text-slate-600 dark:text-slate-400 text-xs">
                           {mov.performedBy || 'Admin'}
@@ -865,12 +862,6 @@ export const WarehouseView: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* AI Delivery Note Scanner / Import Modal */}
-      <AiDeliveryNoteImportModal
-        isOpen={showAiImportModal}
-        onClose={() => setShowAiImportModal(false)}
-      />
 
       {/* Inbound Delivery Note Formal Slip & Attached PDF Modal */}
       <InboundDeliveryNoteSlipModal

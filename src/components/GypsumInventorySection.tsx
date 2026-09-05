@@ -1311,7 +1311,7 @@ SELECT ITEM [${currentItem.itemNumber}]
             className="text-2xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex items-center gap-1 transition-colors"
           >
             <RefreshCw className="w-3 h-3" />
-            <span>Reset Demo State (750 BAG)</span>
+            <span>Clear inventory</span>
           </button>
         </div>
       </div>
@@ -1496,24 +1496,6 @@ SELECT ITEM [${currentItem.itemNumber}]
                     SO: 9100042352 • 750 BAG Bags - Regular 40 kg Gypsum Powder
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInItemNumber('1290000001');
-                    setSelectedItemNumber('1290000001');
-                    setInQty('750');
-                    setInReference('DN #9010043436 (SO: 9100042352)');
-                    setInSoNumber('9100042352');
-                    setInDnNumber('9010043436');
-                    setInPdfName('Delivery_Note_9010043436.pdf');
-                    setShowPdfModal(false);
-                    qtyInCardRef.current?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-xs inline-flex items-center gap-2"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Load Sample Delivery Note into Qty In Form</span>
-                </button>
               </div>
 
               <div className="flex items-center justify-end">

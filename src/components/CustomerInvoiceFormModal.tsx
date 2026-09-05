@@ -143,7 +143,7 @@ export const CustomerInvoiceFormModal: React.FC<CustomerInvoiceFormModalProps> =
           invoiceDate,
           customerId: selectedCustomer ? selectedCustomer.id : 'cust_guest',
           customerName,
-          customerNumber: selectedCustomer?.customerNumber || 'CUST-REF',
+          customerNumber: selectedCustomer?.customerNumber || '',
           dnNumber: dnNum,
           productService,
           quantity: Number(quantity) || 1,

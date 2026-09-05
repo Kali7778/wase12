@@ -132,14 +132,14 @@ export const InboundDeliveryNoteSlipModal: React.FC<InboundDeliveryNoteSlipModal
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xl font-black tracking-tight text-slate-950 dark:text-white uppercase">
-                    {note.shipFrom || 'El-Khayyat Gypsum Plant'}
+                    {note.shipFrom || '—'}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Industrial Area Logistics Hub • Saudi Arabia
                 </p>
                 <p className="text-xs font-mono text-slate-600 dark:text-slate-300">
-                  Salesman / Rep: <strong>{note.salesman || 'sherief abdelkudous'}</strong>
+                  Salesman / Rep: <strong>{note.salesman || '—'}</strong>
                 </p>
               </div>
 
@@ -193,10 +193,10 @@ export const InboundDeliveryNoteSlipModal: React.FC<InboundDeliveryNoteSlipModal
                   Ship From: <strong>{note.shipFrom}</strong>
                 </p>
                 <p className="text-slate-700 dark:text-slate-300">
-                  Driver: <strong>{note.driverName || 'Mohamed Salah'}</strong>
+                  Driver: <strong>{note.driverName || '—'}</strong>
                 </p>
                 <p className="text-slate-700 dark:text-slate-300">
-                  Dispatcher: <strong>{note.dispatcher || 'sherief abdelkudous'}</strong>
+                  Dispatcher: <strong>{note.dispatcher || '—'}</strong>
                 </p>
                 <p className="text-slate-500 mt-0.5">
                   Status: <span className="text-emerald-600 dark:text-emerald-400 font-bold">✓ Verified {note.inOutType || 'IN'}</span>
@@ -275,7 +275,7 @@ export const InboundDeliveryNoteSlipModal: React.FC<InboundDeliveryNoteSlipModal
                 </span>
                 <div className="h-10 flex items-end">
                   <span className="font-serif italic text-sm text-slate-700 dark:text-slate-300">
-                    {note.salesman || 'sherief abdelkudous'}
+                    {note.salesman || '—'}
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-400">Authorized Plant Dispatch Stamp</p>
@@ -287,7 +287,7 @@ export const InboundDeliveryNoteSlipModal: React.FC<InboundDeliveryNoteSlipModal
                 </span>
                 <div className="h-10 flex items-end">
                   <span className="font-serif italic text-sm text-emerald-600 dark:text-emerald-400 font-bold">
-                    {note.receiverSignature || 'Hassan Al-Otaibi (Warehouse Lead)'}
+                    {note.receiverSignature || '—'}
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-400">Inward Goods Inspection Passed</p>
@@ -340,7 +340,7 @@ export const InboundDeliveryNoteSlipModal: React.FC<InboundDeliveryNoteSlipModal
                   <p className="font-mono text-slate-700">Date: <strong>{note.printDate || note.orderDate}</strong></p>
                   <p className="font-mono text-slate-700">Shipping Ref: <strong>{note.shippingRef || '750'}</strong></p>
                   <p className="text-slate-700">Salesman: <strong>{note.salesman}</strong></p>
-                  <p className="text-slate-700">Driver: <strong>{note.driverName || 'Mohamed Salah'}</strong></p>
+                  <p className="text-slate-700">Driver: <strong>{note.driverName || '—'}</strong></p>
                 </div>
               </div>
 
@@ -399,7 +399,7 @@ export const InboundDeliveryNoteSlipModal: React.FC<InboundDeliveryNoteSlipModal
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] text-slate-500 uppercase font-bold">Verified Receiver Stamp</p>
-                    <p className="font-serif italic font-bold text-slate-900 text-sm mt-0.5">{note.receiverSignature || 'Hassan Al-Otaibi'}</p>
+                    <p className="font-serif italic font-bold text-slate-900 text-sm mt-0.5">{note.receiverSignature || '—'}</p>
                   </div>
                 </div>
               </div>

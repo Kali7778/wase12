@@ -199,7 +199,7 @@ export const ZatcaInvoiceDetailModal: React.FC<ZatcaInvoiceDetailModalProps> = (
                   </span>
                   <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" />
                   <span className="px-2 py-0.5 bg-white dark:bg-slate-900 rounded-md border border-slate-200 dark:border-slate-700">
-                    Driver: {invoice.driverName || 'Ahmed'}
+                    Driver: {invoice.driverName || '—'}
                   </span>
                   <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" />
                   <span className="px-2 py-0.5 bg-white dark:bg-slate-900 rounded-md border border-slate-200 dark:border-slate-700">
@@ -271,11 +271,11 @@ export const ZatcaInvoiceDetailModal: React.FC<ZatcaInvoiceDetailModalProps> = (
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Route & Transit:</span>
-                    <span className="text-slate-800 dark:text-slate-200 font-medium">{invoice.pickupLocation || 'Jeddah'} → {invoice.dropLocation || 'Riyadh'}</span>
+                    <span className="text-slate-800 dark:text-slate-200 font-medium">{invoice.pickupLocation || '—'} → {invoice.dropLocation || '—'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Assigned Driver & Truck:</span>
-                    <span className="text-slate-800 dark:text-slate-200 font-medium">{invoice.driverName || 'Ahmed'} ({invoice.truckNo || invoice.vehiclePlate || 'TR-102'})</span>
+                    <span className="text-slate-800 dark:text-slate-200 font-medium">{invoice.driverName || '—'} ({invoice.truckNo || invoice.vehiclePlate || 'TR-102'})</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Service / Commodity:</span>

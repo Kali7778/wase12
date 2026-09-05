@@ -205,7 +205,7 @@ export const LogisticsOperationsTable: React.FC<LogisticsOperationsTableProps> =
                   const dnNo = trip.dnNumber || trip.deliveryNote?.dnNumber || 'DN-1001';
                   const dateStr = trip.departureTime?.split(' ')[0] || '19-08-2026';
                   const customer = trip.customerName || trip.companyName || 'ABC Customer';
-                  const routeStr = `${trip.origin?.city || 'Jeddah'} → ${trip.destination?.city || 'Riyadh'}`;
+                  const routeStr = `${trip.origin?.city || '—'} → ${trip.destination?.city || '—'}`;
 
                   return (
                     <tr

@@ -110,17 +110,17 @@ export const RouteShiftModal: React.FC<RouteShiftModalProps> = ({
       if (abc && !targetCustomerId) {
         setTargetCustomerId(abc.id);
         setTargetCustomerName(abc.name);
-        setTargetCustomerAddress(abc.address || 'King Fahd Industrial City, Riyadh');
-        setTargetCustomerCity(abc.city || 'Riyadh');
-        setTargetCustomerPhone(abc.phone || '+966 55 440 2901');
+        setTargetCustomerAddress(abc.address || '—');
+        setTargetCustomerCity(abc.city || '—');
+        setTargetCustomerPhone(abc.phone || '—');
         setTargetCustomerVat(abc.vatNumber || '300881928300003');
         setTargetCustomerCr(abc.crNumber || '4030192847');
 
         setSplitCustomerId(abc.id);
         setSplitCustomerName(abc.name);
         setSplitCustomerAddress(abc.address || 'King Abdulaziz Road Depot, Jeddah');
-        setSplitCustomerCity(abc.city || 'Jeddah');
-        setSplitCustomerPhone(abc.phone || '+966 55 440 2901');
+        setSplitCustomerCity(abc.city || '—');
+        setSplitCustomerPhone(abc.phone || '—');
         setSplitCustomerVat(abc.vatNumber || '300881928300003');
         setSplitCustomerCr(abc.crNumber || '4030192847');
       }
@@ -144,7 +144,7 @@ export const RouteShiftModal: React.FC<RouteShiftModalProps> = ({
       if (found) {
         setTargetCustomerName(found.name);
         setTargetCustomerAddress(found.address || '');
-        setTargetCustomerCity(found.city || 'Riyadh');
+        setTargetCustomerCity(found.city || '—');
         setTargetCustomerPhone(found.phone || '');
         setTargetCustomerVat(found.vatNumber || '');
         setTargetCustomerCr(found.crNumber || '');
@@ -164,7 +164,7 @@ export const RouteShiftModal: React.FC<RouteShiftModalProps> = ({
       if (found) {
         setSplitCustomerName(found.name);
         setSplitCustomerAddress(found.address || '');
-        setSplitCustomerCity(found.city || 'Riyadh');
+        setSplitCustomerCity(found.city || '—');
         setSplitCustomerPhone(found.phone || '');
         setSplitCustomerVat(found.vatNumber || '');
         setSplitCustomerCr(found.crNumber || '');

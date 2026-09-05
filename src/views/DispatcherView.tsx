@@ -550,10 +550,10 @@ export const DispatcherView: React.FC<DispatcherViewProps> = ({
                     {/* Driver & Truck */}
                     <td className="py-3.5 px-4">
                       <div className="font-bold text-slate-900 dark:text-white">
-                        {trip.driverName || 'Ahmed'}
+                        {trip.driverName || '—'}
                       </div>
                       <span className="font-mono text-[11px] text-slate-500 font-semibold">
-                        Truck: {trip.vehiclePlate || 'T-101'}
+                        Truck: {trip.vehiclePlate || '—'}
                       </span>
                     </td>
 
@@ -786,7 +786,7 @@ export const DispatcherView: React.FC<DispatcherViewProps> = ({
                     Receiver Signature / Stamp:
                   </span>
                   <span className="text-slate-600 dark:text-slate-300 text-[11px]">
-                    {selectedTripForSlipReview.deliveryNote?.receiverSignature || 'Hassan Al-Otaibi (Site Gate 3)'}
+                    {selectedTripForSlipReview.deliveryNote?.receiverSignature || '—'}
                   </span>
                 </div>
                 <span className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[10px]">

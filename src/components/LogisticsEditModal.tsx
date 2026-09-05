@@ -71,11 +71,11 @@ export const LogisticsEditModal: React.FC<LogisticsEditModalProps> = ({
       setVehicleId(trip.vehicleId || '');
       setStatus(trip.status || 'in_transit');
 
-      setOriginCity(trip.origin?.city || 'Jeddah');
+      setOriginCity(trip.origin?.city || '—');
       setOriginName(trip.origin?.name || '');
       setOriginAddress(trip.origin?.address || '');
 
-      setDestCity(trip.destination?.city || 'Riyadh');
+      setDestCity(trip.destination?.city || '—');
       setDestName(trip.destination?.name || '');
       setDestAddress(trip.destination?.address || '');
 

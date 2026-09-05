@@ -1,23 +1,155 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+/* ============================================================================
+   Design tokens
+
+   An operations console is read for hours at a time. The palette is therefore
+   deliberately quiet: one accent carries every primary action, and colour is
+   otherwise reserved for status. Anything that competes for attention when
+   nothing is wrong is noise.
+   ========================================================================= */
+
+@theme {
+  /* Surfaces — four steps of depth, nothing more */
+  --color-canvas: oklch(0.985 0.002 250);
+  --color-surface: oklch(1 0 0);
+  --color-raised: oklch(0.975 0.003 250);
+  --color-sunken: oklch(0.955 0.005 250);
+  --color-line: oklch(0.905 0.006 250);
+  --color-line-strong: oklch(0.845 0.008 250);
+
+  /* Text — three levels of emphasis */
+  --color-ink: oklch(0.22 0.015 260);
+  --color-ink-soft: oklch(0.46 0.012 260);
+  --color-ink-faint: oklch(0.62 0.01 260);
+
+  /* Accent — the single colour for primary actions and selection */
+  --color-accent: oklch(0.52 0.19 265);
+  --color-accent-hover: oklch(0.46 0.19 265);
+  --color-accent-soft: oklch(0.955 0.025 265);
+  --color-accent-ink: oklch(0.42 0.17 265);
+
+  /* Status — reserved for state, never for buttons */
+  --color-ok: oklch(0.58 0.14 158);
+  --color-ok-soft: oklch(0.96 0.03 158);
+  --color-warn: oklch(0.68 0.15 68);
+  --color-warn-soft: oklch(0.96 0.05 82);
+  --color-risk: oklch(0.58 0.2 25);
+  --color-risk-soft: oklch(0.96 0.03 25);
+  --color-info: oklch(0.6 0.13 240);
+  --color-info-soft: oklch(0.96 0.03 240);
+
+  /* Radii — three sizes, applied consistently */
+  --radius-control: 0.5rem;
+  --radius-panel: 0.75rem;
+  --radius-pill: 9999px;
+
+  /* Type — a real scale, not ad-hoc pixel values */
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1rem;
+  --text-tiny: 0.75rem;
+  --text-tiny--line-height: 1.125rem;
+  --text-body: 0.8125rem;
+  --text-body--line-height: 1.25rem;
+  --text-lead: 0.9375rem;
+  --text-lead--line-height: 1.375rem;
+}
+
+/* Dark theme — the same structure at low luminance, not inverted colours */
+@layer base {
+  .dark {
+    --color-canvas: oklch(0.17 0.012 260);
+    --color-surface: oklch(0.213 0.014 260);
+    --color-raised: oklch(0.245 0.015 260);
+    --color-sunken: oklch(0.19 0.013 260);
+    --color-line: oklch(0.3 0.015 260);
+    --color-line-strong: oklch(0.38 0.016 260);
+
+    --color-ink: oklch(0.95 0.005 260);
+    --color-ink-soft: oklch(0.73 0.012 260);
+    --color-ink-faint: oklch(0.58 0.012 260);
+
+    --color-accent: oklch(0.62 0.17 265);
+    --color-accent-hover: oklch(0.68 0.16 265);
+    --color-accent-soft: oklch(0.28 0.06 265);
+    --color-accent-ink: oklch(0.78 0.12 265);
+
+    --color-ok-soft: oklch(0.27 0.05 158);
+    --color-warn-soft: oklch(0.29 0.06 82);
+    --color-risk-soft: oklch(0.28 0.07 25);
+    --color-info-soft: oklch(0.27 0.05 240);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Tabular figures everywhere numbers are compared down a column. */
+  table,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* One visible, consistent focus ring — keyboard users are first-class. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-control);
+  }
+
+  ::selection {
+    background-color: var(--color-accent-soft);
+    color: var(--color-accent-ink);
+  }
+}
 
 @layer utilities {
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.3);
-    border-radius: 9999px;
+    background: var(--color-line-strong);
+    border-radius: var(--radius-pill);
+    border: 2px solid transparent;
+    background-clip: content-box;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(148, 163, 184, 0.6);
+    background: var(--color-ink-faint);
+    background-clip: content-box;
   }
-  
+
   .font-arabic {
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Arabic", "Cairo", sans-serif;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Arabic', 'Cairo', sans-serif;
+  }
+
+  /* Row separators that do not need a border on the last child. */
+  .divide-line > * + * {
+    border-top: 1px solid var(--color-line);
+  }
+}
+
+/* Respect the operating system setting; motion is decoration here, never
+   information. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -26,7 +158,11 @@
     background: white !important;
     color: black !important;
   }
-  aside, header, #toast-container, button, nav {
+  aside,
+  header,
+  #toast-container,
+  button,
+  nav {
     display: none !important;
   }
 }

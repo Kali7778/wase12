@@ -8,10 +8,11 @@ import { ToastContainer } from './components/Toast';
 import { DeliveryNoteModal } from './components/DeliveryNoteModal';
 import { TaxInvoiceModal } from './components/TaxInvoiceModal';
 import { InboundDeliveryNoteSlipModal } from './components/InboundDeliveryNoteSlipModal';
-import { AiDeliveryNoteImportModal } from './components/AiDeliveryNoteImportModal';
 import { NewTripModal } from './components/NewTripModal';
 
 // Views
+import { AdminSlipsView } from './views/AdminSlipsView';
+import { SlipReviewView } from './views/SlipReviewView';
 import { DashboardView } from './views/DashboardView';
 import { TripsView } from './views/TripsView';
 import { DispatcherView } from './views/DispatcherView';
@@ -35,7 +36,7 @@ import { ApprovalCenterView } from './views/ApprovalCenterView';
 import { MasterAuditView } from './views/MasterAuditView';
 
 const MainLayout: React.FC = () => {
-  const { currentView, language, isAiDnImportModalOpen, aiDnImportInitialMode, closeAiDnImportModal } = useApp();
+  const { currentView, language } = useApp();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showNewTripModal, setShowNewTripModal] = useState(false);
 
@@ -51,6 +52,10 @@ const MainLayout: React.FC = () => {
         return <ApprovalCenterView />;
       case 'masterAudit':
         return <MasterAuditView />;
+      case 'adminSlips':
+        return <AdminSlipsView />;
+      case 'slipReview':
+        return <SlipReviewView />;
       case 'dashboard':
         return <DashboardView onOpenNewTripModal={() => setShowNewTripModal(true)} />;
       case 'trips':
@@ -114,11 +119,6 @@ const MainLayout: React.FC = () => {
       <DeliveryNoteModal />
       <TaxInvoiceModal />
       <InboundDeliveryNoteSlipModal />
-      <AiDeliveryNoteImportModal
-        isOpen={isAiDnImportModalOpen}
-        initialMode={aiDnImportInitialMode}
-        onClose={closeAiDnImportModal}
-      />
       <NewTripModal
         isOpen={showNewTripModal}
         onClose={() => setShowNewTripModal(false)}

@@ -1,25 +1,6 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 import { DriverDocumentInfo, DocumentExpiryStatus } from '../types';
 
-// Default Supabase project endpoints (overridable via VITE_ env variables)
-const DEFAULT_SUPABASE_URL = 'https://xyzcompany.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummyKeyLogiFlow2026';
-
-let supabaseInstance: SupabaseClient | null = null;
-
-export const getSupabaseClient = (): SupabaseClient => {
-  if (!supabaseInstance) {
-    const env = (import.meta as any).env || {};
-    const url = (env.VITE_SUPABASE_URL as string) || DEFAULT_SUPABASE_URL;
-    const key = (env.VITE_SUPABASE_ANON_KEY as string) || DEFAULT_SUPABASE_ANON_KEY;
-    supabaseInstance = createClient(url, key, {
-      auth: {
-        persistSession: false,
-      },
-    });
-  }
-  return supabaseInstance;
-};
 
 /**
  * Calculates document expiry status: Valid / Expiring Soon / Expired
@@ -116,8 +97,7 @@ export const uploadDriverDocumentToSupabase = async (
     console.warn('Could not generate data URL for file preview:', err);
   }
 
-  const supabase = getSupabaseClient();
-  let publicUrl = `${DEFAULT_SUPABASE_URL}/storage/v1/object/public/${bucketName}/${storagePath}`;
+  let publicUrl = '';
 
   try {
     // Attempt live Supabase Storage upload
