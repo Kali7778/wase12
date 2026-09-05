@@ -37,6 +37,13 @@ export interface DeliveryNote extends AuditedRecord {
   sentAt: string | null;
   sentBy: string | null;
 
+  /** Driver the GM handed this slip to. */
+  assignedDriverId: string | null;
+  driverSentAt: string | null;
+  driverSentBy: string | null;
+  /** Copy carrying the approval stamp. The original stays untouched. */
+  stampedPdfPath: string | null;
+
   uploadBatchId: string | null;
   pdfStoragePath: string | null;
   pdfFileName: string | null;
@@ -91,6 +98,7 @@ export const WORKFLOW_LABEL: Record<DnWorkflowStatus, string> = {
   draft: 'Not sent',
   sent_to_gm: 'Sent to GM',
   gm_approved: 'Approved by GM',
+  sent_to_driver: 'With driver',
   rejected: 'Rejected',
 };
 
@@ -100,3 +108,24 @@ export const DN_STATUS_LABEL: Record<DnStatus, string> = {
   arrived: 'Arrived',
   cancelled: 'Cancelled',
 };
+
+/** One transition in a delivery note's handover history. */
+export interface WorkflowEntry {
+  id: string;
+  deliveryNoteId: string;
+  fromStatus: DnWorkflowStatus | null;
+  toStatus: DnWorkflowStatus;
+  assignedTo: string | null;
+  assignedToName: string | null;
+  note: string | null;
+  actor: string | null;
+  actorName: string | null;
+  createdAt: string;
+}
+
+/** Someone a slip can be handed to — a GM or a driver. */
+export interface Recipient {
+  id: string;
+  fullName: string;
+  email: string;
+}

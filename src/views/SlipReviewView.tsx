@@ -6,21 +6,25 @@ import {
   Inbox,
   Loader2,
   RefreshCw,
+  Stamp,
+  Truck,
   X,
 } from 'lucide-react';
 import { PageHeader, Panel, EmptyState, Metric } from '../components/ui/Panel';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { Field, Textarea } from '../components/ui/Field';
+import { Field, Select, Textarea } from '../components/ui/Field';
 import { useAuth } from '../context/AuthContext';
+import { fullName } from '../models/masterData';
 import { deliveryNoteService } from '../services/DeliveryNoteService';
-import type { DeliveryNoteWithLines, DnWorkflowStatus } from '../models/deliveryNote';
+import type { DeliveryNoteWithLines, DnWorkflowStatus, Recipient } from '../models/deliveryNote';
 import { WORKFLOW_LABEL } from '../models/deliveryNote';
 
-const TONE: Record<DnWorkflowStatus, 'neutral' | 'accent' | 'ok' | 'risk'> = {
+const TONE: Record<DnWorkflowStatus, 'neutral' | 'accent' | 'ok' | 'risk' | 'info'> = {
   draft: 'neutral',
   sent_to_gm: 'accent',
   gm_approved: 'ok',
+  sent_to_driver: 'info',
   rejected: 'risk',
 };
 
@@ -32,13 +36,16 @@ const TONE: Record<DnWorkflowStatus, 'neutral' | 'accent' | 'ok' | 'risk'> = {
  * had nowhere to arrive.
  */
 export const SlipReviewView: React.FC = () => {
-  const { can } = useAuth();
+  const { can, profile } = useAuth();
   const [slips, setSlips] = useState<DeliveryNoteWithLines[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const [drivers, setDrivers] = useState<Recipient[]>([]);
+  const [handing, setHanding] = useState<string | null>(null);
+  const [driverId, setDriverId] = useState('');
 
   const canDecide = can('gm', 'ceo');
 
@@ -46,7 +53,12 @@ export const SlipReviewView: React.FC = () => {
     setLoading(true);
     try {
       setSlips(
-        await deliveryNoteService.listByWorkflowStatus(['sent_to_gm', 'gm_approved', 'rejected']),
+        await deliveryNoteService.listByWorkflowStatus([
+          'sent_to_gm',
+          'gm_approved',
+          'sent_to_driver',
+          'rejected',
+        ]),
       );
     } catch (err) {
       setMessage({ tone: 'error', text: err instanceof Error ? err.message : 'Could not load slips' });
@@ -59,8 +71,24 @@ export const SlipReviewView: React.FC = () => {
     void refresh();
   }, [refresh]);
 
-  const pending = useMemo(() => slips.filter((s) => s.workflowStatus === 'sent_to_gm'), [slips]);
-  const decided = useMemo(() => slips.filter((s) => s.workflowStatus !== 'sent_to_gm'), [slips]);
+  useEffect(() => {
+    deliveryNoteService
+      .listRecipients('driver')
+      .then((list) => {
+        setDrivers(list);
+        setDriverId((current) => current || list[0]?.id || '');
+      })
+      .catch(() => setDrivers([]));
+  }, []);
+
+  const pending = useMemo(
+    () => slips.filter((s) => s.workflowStatus === 'sent_to_gm' || s.workflowStatus === 'gm_approved'),
+    [slips],
+  );
+  const decided = useMemo(
+    () => slips.filter((s) => s.workflowStatus === 'sent_to_driver' || s.workflowStatus === 'rejected'),
+    [slips],
+  );
 
   const decide = async (id: string, approve: boolean, note?: string) => {
     setBusyId(id);
@@ -73,6 +101,37 @@ export const SlipReviewView: React.FC = () => {
       await refresh();
     } catch (err) {
       setMessage({ tone: 'error', text: err instanceof Error ? err.message : 'Could not save the decision' });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  /**
+   * Hands a slip to a driver. A stamped copy of the delivery note is created;
+   * the supplier original is left untouched.
+   */
+  const handOver = async (slip: DeliveryNoteWithLines) => {
+    const driver = drivers.find((d) => d.id === driverId);
+    if (!driver) return;
+    setBusyId(slip.id);
+    setMessage(null);
+    try {
+      const { stamped } = await deliveryNoteService.handToDriver({
+        slip,
+        driverId: driver.id,
+        driverName: driver.fullName || driver.email,
+        approvedByName: profile ? fullName(profile) || profile.email : 'GM',
+      });
+      setMessage({
+        tone: 'ok',
+        text: stamped
+          ? `Sent to ${driver.fullName}. A stamped copy was attached.`
+          : `Sent to ${driver.fullName}. The slip could not be stamped, so the original was passed on.`,
+      });
+      setHanding(null);
+      await refresh();
+    } catch (err) {
+      setMessage({ tone: 'error', text: err instanceof Error ? err.message : 'Could not hand over the slip' });
     } finally {
       setBusyId(null);
     }
@@ -92,10 +151,10 @@ export const SlipReviewView: React.FC = () => {
     <div className="space-y-5">
       <PageHeader
         title="Slip Review"
-        description="Delivery slips handed over by the admin. Approve each one, or reject it with a reason."
+        description="Delivery slips handed over by the admin. Assign each one to a driver, or reject it with a reason."
         stats={[
           { label: 'awaiting you', value: pending.length },
-          { label: 'approved', value: decided.filter((s) => s.workflowStatus === 'gm_approved').length },
+          { label: 'with drivers', value: decided.filter((s) => s.workflowStatus === 'sent_to_driver').length },
           { label: 'rejected', value: decided.filter((s) => s.workflowStatus === 'rejected').length },
         ]}
         actions={<Button icon={RefreshCw} onClick={refresh} loading={loading} size="sm">Refresh</Button>}
@@ -131,12 +190,56 @@ export const SlipReviewView: React.FC = () => {
                 <SlipRow
                   slip={slip}
                   busy={busyId === slip.id}
-                  onApprove={() => decide(slip.id, true)}
+                  onAssign={() => {
+                    setHanding(handing === slip.id ? null : slip.id);
+                    setRejecting(null);
+                  }}
                   onReject={() => {
                     setRejecting(slip.id);
+                    setHanding(null);
                     setReason('');
                   }}
                 />
+                {handing === slip.id && (
+                  <div className="px-4 pb-4 -mt-1">
+                    <div className="p-3 rounded-panel bg-sunken border border-line">
+                      <Field
+                        label="Driver"
+                        htmlFor={`driver-${slip.id}`}
+                        required
+                        hint="A stamped copy is created for the driver. The supplier original is kept unchanged."
+                      >
+                        <Select
+                          id={`driver-${slip.id}`}
+                          value={driverId}
+                          onChange={(e) => setDriverId(e.target.value)}
+                        >
+                          {drivers.length === 0 && <option value="">No active drivers</option>}
+                          {drivers.map((d) => (
+                            <option key={d.id} value={d.id}>
+                              {d.fullName || d.email}
+                            </option>
+                          ))}
+                        </Select>
+                      </Field>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          icon={Check}
+                          disabled={!driverId}
+                          loading={busyId === slip.id}
+                          onClick={() => handOver(slip)}
+                        >
+                          Approve &amp; send
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setHanding(null)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {rejecting === slip.id && (
                   <div className="px-4 pb-4 -mt-1">
                     <div className="p-3 rounded-panel bg-sunken border border-line">
@@ -178,11 +281,15 @@ export const SlipReviewView: React.FC = () => {
       </Panel>
 
       {decided.length > 0 && (
-        <Panel title="Recently decided" flush>
+        <Panel title="Handed over" flush>
           <ul className="divide-line">
             {decided.slice(0, 25).map((slip) => (
               <li key={slip.id}>
-                <SlipRow slip={slip} busy={false} />
+                <SlipRow
+                  slip={slip}
+                  busy={false}
+                  driverName={drivers.find((d) => d.id === slip.assignedDriverId)?.fullName}
+                />
               </li>
             ))}
           </ul>
@@ -195,16 +302,18 @@ export const SlipReviewView: React.FC = () => {
 const SlipRow: React.FC<{
   slip: DeliveryNoteWithLines;
   busy: boolean;
-  onApprove?: () => void;
+  onAssign?: () => void;
   onReject?: () => void;
-}> = ({ slip, busy, onApprove, onReject }) => {
+  driverName?: string;
+}> = ({ slip, busy, onAssign, onReject, driverName }) => {
   const [previewBusy, setPreviewBusy] = useState(false);
   const line = slip.lines[0];
 
   const openPdf = async () => {
-    if (!slip.pdfStoragePath) return;
+    const path = slip.stampedPdfPath ?? slip.pdfStoragePath;
+    if (!path) return;
     setPreviewBusy(true);
-    const url = await deliveryNoteService.getSignedUrl(slip.pdfStoragePath);
+    const url = await deliveryNoteService.getSignedUrl(path);
     setPreviewBusy(false);
     if (url) window.open(url, '_blank', 'noopener');
   };
@@ -227,6 +336,18 @@ const SlipRow: React.FC<{
             {line && ` · ${line.itemDescription}`}
             {slip.printDate && ` · ${slip.printDate}`}
           </p>
+          {slip.assignedDriverId && (
+            <p className="text-micro text-ink-faint mt-1 flex items-center gap-1.5">
+              <Truck className="w-3 h-3" />
+              With {driverName ?? "driver"}
+              {slip.driverSentAt && ` · ${new Date(slip.driverSentAt).toLocaleString()}`}
+              {slip.stampedPdfPath && (
+                <span className="inline-flex items-center gap-1 text-ok">
+                  <Stamp className="w-3 h-3" /> stamped
+                </span>
+              )}
+            </p>
+          )}
         </div>
       </div>
 
@@ -251,15 +372,15 @@ const SlipRow: React.FC<{
           icon={Eye}
           onClick={openPdf}
           loading={previewBusy}
-          disabled={!slip.pdfStoragePath}
-          title={slip.pdfStoragePath ? 'Open the original slip' : 'No file attached'}
+          disabled={!slip.pdfStoragePath && !slip.stampedPdfPath}
+          title={slip.stampedPdfPath ? 'Open the stamped slip' : 'Open the original slip'}
         >
           View
         </Button>
-        {onApprove && (
+        {onAssign && (
           <>
-            <Button size="sm" variant="primary" icon={Check} onClick={onApprove} loading={busy}>
-              Approve
+            <Button size="sm" variant="primary" icon={Truck} onClick={onAssign} loading={busy}>
+              Send to driver
             </Button>
             <Button size="sm" variant="ghost" icon={X} onClick={onReject} disabled={busy}>
               Reject

@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CalendarDays, Loader2, RefreshCw, Save, Send } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CalendarDays, Loader2, RefreshCw, Save, Send } from 'lucide-react';
 import { SlipDropzone } from '../components/admin/SlipDropzone';
 import { StagedSlipCard } from '../components/admin/StagedSlipCard';
 import { SavedSlipCard } from '../components/admin/SavedSlipCard';
 import { useSlipStaging } from '../hooks/useSlipStaging';
 import { deliveryNoteService } from '../services/DeliveryNoteService';
-import type { DeliveryNoteWithLines } from '../models/deliveryNote';
+import type { DeliveryNoteWithLines, Recipient, WorkflowEntry } from '../models/deliveryNote';
+import { WORKFLOW_LABEL } from '../models/deliveryNote';
 import { useAuth } from '../context/AuthContext';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -28,17 +29,42 @@ export const AdminSlipsView: React.FC = () => {
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
 
+  // Which GM a slip goes to. There can be several, so the sender chooses.
+  const [gms, setGms] = useState<Recipient[]>([]);
+  const [gmId, setGmId] = useState('');
+  const [handovers, setHandovers] = useState<WorkflowEntry[]>([]);
+  const [everyone, setEveryone] = useState<Recipient[]>([]);
+
   const canUpload = can('admin', 'dispatcher', 'warehouse', 'manager', 'gm', 'ceo');
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      setSaved(await deliveryNoteService.listWithLines());
+      const [slips, log] = await Promise.all([
+        deliveryNoteService.listWithLines(),
+        deliveryNoteService.listHandovers(),
+      ]);
+      setSaved(slips);
+      setHandovers(log);
     } catch (err) {
       setMessage({ tone: 'error', text: err instanceof Error ? err.message : 'Could not load slips' });
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    // Both lists are needed: GMs to choose from, drivers to name in the record.
+    Promise.all([
+      deliveryNoteService.listRecipients('gm'),
+      deliveryNoteService.listRecipients('driver'),
+    ])
+      .then(([gmList, driverList]) => {
+        setGms(gmList);
+        setGmId((current) => current || gmList[0]?.id || '');
+        setEveryone([...gmList, ...driverList]);
+      })
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -69,8 +95,12 @@ export const AdminSlipsView: React.FC = () => {
     setSendingId(ids.length === 1 ? ids[0] : 'bulk');
     setMessage(null);
     try {
-      const count = await deliveryNoteService.sendToGm(ids);
-      setMessage({ tone: 'ok', text: `Sent ${count} slip${count === 1 ? '' : 's'} to the GM.` });
+      const gm = gms.find((g) => g.id === gmId);
+      const count = await deliveryNoteService.sendToGm(ids, undefined, gmId || undefined);
+      setMessage({
+        tone: 'ok',
+        text: `Sent ${count} slip${count === 1 ? '' : 's'} to ${gm?.fullName ?? 'the GM'}.`,
+      });
       setSelected(new Set());
       await refresh();
     } catch (err) {
@@ -97,6 +127,11 @@ export const AdminSlipsView: React.FC = () => {
     }
     return [...groups.entries()].sort((a, b) => b[0].localeCompare(a[0]));
   }, [saved]);
+
+  const people = useMemo(
+    () => new Map(everyone.map((p) => [p.id, p.fullName || p.email])),
+    [everyone],
+  );
 
   const draftsOnScreen = saved.filter((s) => s.workflowStatus === 'draft');
   const allSelected = draftsOnScreen.length > 0 && selected.size === draftsOnScreen.length;
@@ -232,6 +267,20 @@ export const AdminSlipsView: React.FC = () => {
               >
                 {allSelected ? 'Clear selection' : 'Select all not sent'}
               </button>
+              {gms.length > 1 && (
+                <select
+                  value={gmId}
+                  onChange={(e) => setGmId(e.target.value)}
+                  aria-label="General Manager to send to"
+                  className="h-7 px-2 pr-7 rounded-control border border-line bg-surface text-micro text-ink cursor-pointer"
+                >
+                  {gms.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.fullName || g.email}
+                    </option>
+                  ))}
+                </select>
+              )}
               <button
                 onClick={() => sendSlips([...selected])}
                 disabled={selected.size === 0 || sendingId !== null}
@@ -291,6 +340,39 @@ export const AdminSlipsView: React.FC = () => {
           ))
         )}
       </section>
+      {handovers.length > 0 && (
+        <section className="bg-surface border border-line rounded-panel overflow-hidden">
+          <header className="px-4 py-3 border-b border-line">
+            <h2 className="text-tiny font-semibold text-ink">Handover record</h2>
+            <p className="text-micro text-ink-faint mt-0.5">
+              Every slip that has been passed on, and to whom.
+            </p>
+          </header>
+          <ul className="divide-line max-h-80 overflow-y-auto custom-scrollbar">
+            {handovers.map((entry) => {
+              const slip = saved.find((s) => s.id === entry.deliveryNoteId);
+              const to = people.get(entry.assignedTo ?? "");
+              const by = people.get(entry.actor ?? "");
+              return (
+                <li key={entry.id} className="px-4 py-2.5 flex items-center gap-3 text-tiny">
+                  <ArrowRight className="w-3.5 h-3.5 text-ink-faint shrink-0" />
+                  <span className="font-semibold text-ink shrink-0" data-numeric>
+                    DN {slip?.dnNumber ?? entry.deliveryNoteId.slice(0, 8)}
+                  </span>
+                  <span className="text-ink-soft truncate">
+                    {by ? `${by} sent it` : "Sent"} to <strong className="text-ink">{to ?? "—"}</strong>
+                    {" "}({WORKFLOW_LABEL[entry.toStatus]})
+                    {entry.note ? ` — ${entry.note}` : ""}
+                  </span>
+                  <span className="ml-auto text-micro text-ink-faint shrink-0">
+                    {new Date(entry.createdAt).toLocaleString()}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
     </div>
   );
 };

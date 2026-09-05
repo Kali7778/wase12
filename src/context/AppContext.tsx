@@ -82,6 +82,7 @@ import confetti from 'canvas-confetti';
 export type NavView =
   | 'adminSlips'
   | 'slipReview'
+  | 'myDeliveries'
   | 'ceoPanel'
   | 'gmPanel'
   | 'managerPanel'
@@ -597,6 +598,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // chosen in the UI would only ever disagree with what the server allows.
   const { role: authRole } = useAuth();
   const activeRole: UserRole = (authRole ?? 'driver') as UserRole;
+
+  // A driver has no dashboard to land on, so send them to their own queue.
+  useEffect(() => {
+    if (authRole === 'driver') setCurrentView('myDeliveries');
+  }, [authRole]);
   const [selectedDriverId, setSelectedDriverId] = useState<string>('drv_1'); // Ahmed by default
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);

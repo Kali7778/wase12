@@ -80,6 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
           roles: ['manager', 'admin', 'dispatcher', 'warehouse'],
         },
         { id: 'slipReview', label: 'Slip Review', icon: ClipboardCheck, roles: ['ceo', 'gm'] },
+        { id: 'myDeliveries', label: 'My Deliveries', icon: Truck, roles: ['driver'] },
         {
           id: 'dispatcher',
           label: 'Dispatcher',

@@ -100,6 +100,10 @@ export type Database = {
       };
       delivery_notes: {
         Row: {
+          assigned_driver_id: string | null;
+          driver_sent_at: string | null;
+          driver_sent_by: string | null;
+          stamped_pdf_path: string | null;
           assigned_to: string | null;
           sent_at: string | null;
           sent_by: string | null;
@@ -132,6 +136,10 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          assigned_driver_id?: string | null;
+          driver_sent_at?: string | null;
+          driver_sent_by?: string | null;
+          stamped_pdf_path?: string | null;
           assigned_to?: string | null;
           sent_at?: string | null;
           sent_by?: string | null;
@@ -164,6 +172,10 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          assigned_driver_id?: string | null;
+          driver_sent_at?: string | null;
+          driver_sent_by?: string | null;
+          stamped_pdf_path?: string | null;
           assigned_to?: string | null;
           sent_at?: string | null;
           sent_by?: string | null;
@@ -522,6 +534,19 @@ export type Database = {
         };
         Returns: Database['public']['Tables']['delivery_notes']['Row'];
       };
+      send_dn_to_driver: {
+        Args: {
+          p_dn_id: string;
+          p_driver_id: string;
+          p_stamped_pdf_path?: string | null;
+          p_note?: string | null;
+        };
+        Returns: Database['public']['Tables']['delivery_notes']['Row'];
+      };
+      list_recipients: {
+        Args: { p_kind: string };
+        Returns: { id: string; full_name: string; email: string }[];
+      };
       send_dn_to_gm: {
         Args: { p_dn_ids: string[]; p_gm_id?: string | null; p_note?: string | null };
         Returns: number;
@@ -573,7 +598,12 @@ export type Database = {
     };
     Enums: {
       dn_status: 'not_arrived' | 'partial' | 'arrived' | 'cancelled';
-      dn_workflow_status: 'draft' | 'sent_to_gm' | 'gm_approved' | 'rejected';
+      dn_workflow_status:
+        | 'draft'
+        | 'sent_to_gm'
+        | 'gm_approved'
+        | 'sent_to_driver'
+        | 'rejected';
       extraction_method: 'pdf_text' | 'vision' | 'manual';
       movement_direction: 'IN' | 'OUT';
       movement_type:
@@ -618,7 +648,7 @@ export type Enums<T extends keyof PublicSchema['Enums']> = PublicSchema['Enums']
 /** Enum values at runtime (for dropdowns and validation). */
 export const DB_ENUMS = {
   dnStatus: ['not_arrived', 'partial', 'arrived', 'cancelled'],
-  dnWorkflowStatus: ['draft', 'sent_to_gm', 'gm_approved', 'rejected'],
+  dnWorkflowStatus: ['draft', 'sent_to_gm', 'gm_approved', 'sent_to_driver', 'rejected'],
   extractionMethod: ['pdf_text', 'vision', 'manual'],
   movementDirection: ['IN', 'OUT'],
   movementType: [

@@ -9,6 +9,8 @@ import type {
   DuplicateMatch,
   UploadBatch,
 } from '../models/deliveryNote';
+import type { Recipient, WorkflowEntry } from '../models/deliveryNote';
+import { stampDeliveryNote, stampedPathFor } from '../utils/pdfStamp';
 import type { Tables } from '../types/database';
 
 /** Everything needed to save one uploaded slip. */
@@ -31,6 +33,21 @@ export interface NewDeliveryNote {
   confidence?: number;
   fileType?: string;
   extractionMethod?: 'pdf_text' | 'vision' | 'manual';
+}
+
+function toEntry(row: Tables<'dn_workflow_log'>): WorkflowEntry {
+  return {
+    id: row.id,
+    deliveryNoteId: row.delivery_note_id,
+    fromStatus: row.from_status,
+    toStatus: row.to_status,
+    assignedTo: row.assigned_to,
+    assignedToName: null,
+    note: row.note,
+    actor: row.actor,
+    actorName: null,
+    createdAt: row.created_at,
+  };
 }
 
 function toLine(row: Tables<'delivery_note_lines'>): DeliveryNoteLine {
@@ -80,6 +97,10 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
       assignedTo: row.assigned_to,
       sentAt: row.sent_at,
       sentBy: row.sent_by,
+      assignedDriverId: row.assigned_driver_id,
+      driverSentAt: row.driver_sent_at,
+      driverSentBy: row.driver_sent_by,
+      stampedPdfPath: row.stamped_pdf_path,
       uploadBatchId: row.upload_batch_id,
       pdfStoragePath: row.pdf_storage_path,
       pdfFileName: row.pdf_file_name,
@@ -224,6 +245,113 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
 
     if (error) throw toAppError(error, 'Sending to the GM');
     return Number(data ?? 0);
+  }
+
+  /** People a slip can be handed to. */
+  async listRecipients(kind: 'gm' | 'driver'): Promise<Recipient[]> {
+    const { data, error } = await this.db.rpc('list_recipients', { p_kind: kind });
+    if (error) throw toAppError(error, 'Loading recipients');
+    return (data ?? []).map((r) => ({ id: r.id, fullName: r.full_name, email: r.email }));
+  }
+
+  /** Handover history for one slip, newest first. */
+  async getHistory(deliveryNoteId: string): Promise<WorkflowEntry[]> {
+    const { data, error } = await supabase
+      .from('dn_workflow_log')
+      .select('*')
+      .eq('delivery_note_id', deliveryNoteId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw toAppError(error, 'Loading history');
+    return (data ?? []).map(toEntry);
+  }
+
+  /** Every handover across all slips — the record the admin sees after sending. */
+  async listHandovers(limit = 50): Promise<WorkflowEntry[]> {
+    const { data, error } = await supabase
+      .from('dn_workflow_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw toAppError(error, 'Loading handover history');
+    return (data ?? []).map(toEntry);
+  }
+
+  /**
+   * Hands an approved slip to a driver.
+   *
+   * A stamped COPY of the delivery note is produced and stored alongside the
+   * original, which is never modified — it is the supplier's document and the
+   * only record of what was actually dispatched.
+   *
+   * If stamping fails the handover still proceeds with the unstamped original,
+   * because blocking a dispatch over a cosmetic stamp would be the worse
+   * outcome. The caller is told through the returned `stamped` flag.
+   */
+  async handToDriver(input: {
+    slip: DeliveryNote;
+    driverId: string;
+    driverName: string;
+    approvedByName: string;
+    note?: string;
+  }): Promise<{ slip: DeliveryNote; stamped: boolean }> {
+    let stampedPath: string | undefined;
+
+    if (input.slip.pdfStoragePath) {
+      try {
+        const { data, error } = await supabase.storage
+          .from(DELIVERY_NOTES_BUCKET)
+          .download(input.slip.pdfStoragePath);
+        if (error || !data) throw error ?? new Error('No file');
+
+        const stamped = await stampDeliveryNote(await data.arrayBuffer(), {
+          approvedBy: input.approvedByName,
+          grantedTo: input.driverName,
+          dnNumber: input.slip.dnNumber,
+        });
+
+        const path = stampedPathFor(input.slip.pdfStoragePath);
+        const { error: upErr } = await supabase.storage
+          .from(DELIVERY_NOTES_BUCKET)
+          .upload(path, new Blob([stamped as BlobPart], { type: 'application/pdf' }), {
+            contentType: 'application/pdf',
+            upsert: true,
+          });
+        if (upErr) throw upErr;
+        stampedPath = path;
+      } catch {
+        stampedPath = undefined;
+      }
+    }
+
+    const { data, error } = await this.db.rpc('send_dn_to_driver', {
+      p_dn_id: input.slip.id,
+      p_driver_id: input.driverId,
+      p_stamped_pdf_path: stampedPath ?? null,
+      p_note: input.note ?? null,
+    });
+
+    if (error) throw toAppError(error, 'Handing the slip to the driver');
+    return { slip: this.toModel(data as Tables<'delivery_notes'>), stamped: Boolean(stampedPath) };
+  }
+
+  /** Slips currently assigned to the signed-in driver. */
+  async listForDriver(driverId: string): Promise<DeliveryNoteWithLines[]> {
+    const { data, error } = await supabase
+      .from('delivery_notes')
+      .select('*, delivery_note_lines(*)')
+      .eq('assigned_driver_id', driverId)
+      .order('driver_sent_at', { ascending: false });
+
+    if (error) throw toAppError(error, 'Loading your delivery notes');
+
+    return (data ?? []).map((row) => {
+      const { delivery_note_lines: lines, ...header } = row as Tables<'delivery_notes'> & {
+        delivery_note_lines: Tables<'delivery_note_lines'>[];
+      };
+      return { ...this.toModel(header), lines: (lines ?? []).map(toLine) };
+    });
   }
 
   /** GM approves or rejects a slip. */
