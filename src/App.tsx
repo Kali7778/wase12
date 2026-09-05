@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
+import { AuthProvider } from './context/AuthContext';
+import { AuthGate } from './components/auth/AuthGate';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { ToastContainer } from './components/Toast';
@@ -128,9 +130,13 @@ const MainLayout: React.FC = () => {
 
 export function App() {
   return (
-    <AppProvider>
-      <MainLayout />
-    </AppProvider>
+    <AuthProvider>
+      <AuthGate>
+        <AppProvider>
+          <MainLayout />
+        </AppProvider>
+      </AuthGate>
+    </AuthProvider>
   );
 }
 
