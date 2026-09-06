@@ -9,6 +9,7 @@ import {
   FileStack,
   LayoutDashboard,
   Navigation,
+  PackageCheck,
   PackagePlus,
   Route,
   ScrollText,
@@ -77,10 +78,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
           label: 'Delivery Slips',
           icon: FileStack,
           // The intake screen belongs to whoever receives slips from the supplier.
-          roles: ['manager', 'admin', 'dispatcher', 'warehouse'],
+          roles: ['manager', 'admin', 'dispatcher'],
         },
         { id: 'slipReview', label: 'Slip Review', icon: ClipboardCheck, roles: ['ceo', 'gm'] },
         { id: 'myDeliveries', label: 'My Deliveries', icon: Truck, roles: ['driver'] },
+        {
+          id: 'receiving',
+          label: 'Receiving',
+          icon: PackageCheck,
+          // The keeper counts; the GM and superadmin can stand in for them.
+          roles: ['ceo', 'gm', 'warehouse'],
+        },
         {
           id: 'dispatcher',
           label: 'Dispatcher',

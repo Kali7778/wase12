@@ -102,6 +102,7 @@ class UserServiceImpl extends BaseService<Tables<'user_tbl'>, AppUser> {
       isGm: row.is_gm,
       isAdmin: row.is_admin,
       isDriver: row.is_driver,
+      isWarehouse: row.is_warehouse,
       role: row.role,
       phone: row.phone,
     };
@@ -124,6 +125,7 @@ class UserServiceImpl extends BaseService<Tables<'user_tbl'>, AppUser> {
       p_is_gm: input.flags?.isGm ?? false,
       p_is_admin: input.flags?.isAdmin ?? false,
       p_is_driver: input.flags?.isDriver ?? false,
+      p_is_warehouse: input.flags?.isWarehouse ?? false,
     });
 
     if (error) throw toAppError(error, 'Creating user');
@@ -148,6 +150,7 @@ class UserServiceImpl extends BaseService<Tables<'user_tbl'>, AppUser> {
       p_is_gm: flags.isGm ?? false,
       p_is_admin: flags.isAdmin ?? false,
       p_is_driver: flags.isDriver ?? false,
+      p_is_warehouse: flags.isWarehouse ?? false,
     });
 
     if (error) throw toAppError(error, 'Changing user role');

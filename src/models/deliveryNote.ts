@@ -3,6 +3,7 @@ import type { Enums } from '../types/database';
 
 export type DnWorkflowStatus = Enums<'dn_workflow_status'>;
 export type ExtractionMethod = Enums<'extraction_method'>;
+export type DiscrepancyReason = Enums<'dn_discrepancy_reason'>;
 
 /** A day's intake of slips — "20 slips arrived today" is one batch. */
 export interface UploadBatch extends AuditedRecord {
@@ -77,7 +78,12 @@ export interface DeliveryNoteLine extends BaseRecord {
   status: DnStatus;
   receivedAt: string | null;
   receivedBy: string | null;
+  /** Structured reason the quantity did not match — drives accountability. */
+  discrepancyCode: DiscrepancyReason | null;
+  /** Free text accompanying the code. Required when the code is `other`. */
   discrepancyReason: string | null;
+  /** Optional evidence photo in the private bucket. */
+  arrivalPhotoPath: string | null;
   notes: string | null;
 }
 
@@ -100,7 +106,64 @@ export const WORKFLOW_LABEL: Record<DnWorkflowStatus, string> = {
   gm_approved: 'Approved by GM',
   sent_to_driver: 'With driver',
   rejected: 'Rejected',
+  received: 'Received',
 };
+
+/** Badge colour for each workflow status, so every screen agrees. */
+export const WORKFLOW_TONE: Record<
+  DnWorkflowStatus,
+  'neutral' | 'accent' | 'ok' | 'risk' | 'info'
+> = {
+  draft: 'neutral',
+  sent_to_gm: 'accent',
+  gm_approved: 'ok',
+  sent_to_driver: 'info',
+  rejected: 'risk',
+  received: 'ok',
+};
+
+/**
+ * Why the received quantity did not match the delivery note.
+ *
+ * The value carries the answer to "who is answerable for this?", which is the
+ * reason it is an enum and not a free-text box: a shortage blamed on the
+ * supplier and one lost in transit lead to entirely different conversations,
+ * and nobody can reconstruct that from a sentence typed six months earlier.
+ */
+export const DISCREPANCY_LABEL: Record<DiscrepancyReason, string> = {
+  supplier_short_loaded: 'Supplier loaded less than the note',
+  transit_loss: 'Lost in transit',
+  damaged: 'Damaged on arrival',
+  counting_error: 'Counting error',
+  supplier_over_loaded: 'Supplier loaded more than the note',
+  other: 'Other (describe below)',
+};
+
+/** Who the reason points at, shown beside the label. */
+export const DISCREPANCY_ACCOUNTABLE: Record<DiscrepancyReason, string> = {
+  supplier_short_loaded: 'Supplier',
+  transit_loss: 'Transport',
+  damaged: 'Transport',
+  counting_error: 'Internal',
+  supplier_over_loaded: 'Supplier',
+  other: '—',
+};
+
+/** Reasons offered when less arrived than the note claims. */
+export const SHORTAGE_REASONS: DiscrepancyReason[] = [
+  'supplier_short_loaded',
+  'transit_loss',
+  'damaged',
+  'counting_error',
+  'other',
+];
+
+/** Reasons offered when more arrived than the note claims. */
+export const OVERAGE_REASONS: DiscrepancyReason[] = [
+  'supplier_over_loaded',
+  'counting_error',
+  'other',
+];
 
 export const DN_STATUS_LABEL: Record<DnStatus, string> = {
   not_arrived: 'Not arrived',

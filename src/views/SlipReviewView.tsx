@@ -17,16 +17,9 @@ import { Field, Select, Textarea } from '../components/ui/Field';
 import { useAuth } from '../context/AuthContext';
 import { fullName } from '../models/masterData';
 import { deliveryNoteService } from '../services/DeliveryNoteService';
-import type { DeliveryNoteWithLines, DnWorkflowStatus, Recipient } from '../models/deliveryNote';
-import { WORKFLOW_LABEL } from '../models/deliveryNote';
+import type { DeliveryNoteWithLines, Recipient } from '../models/deliveryNote';
+import { WORKFLOW_LABEL, WORKFLOW_TONE } from '../models/deliveryNote';
 
-const TONE: Record<DnWorkflowStatus, 'neutral' | 'accent' | 'ok' | 'risk' | 'info'> = {
-  draft: 'neutral',
-  sent_to_gm: 'accent',
-  gm_approved: 'ok',
-  sent_to_driver: 'info',
-  rejected: 'risk',
-};
 
 /**
  * Slip review.
@@ -329,7 +322,7 @@ const SlipRow: React.FC<{
             <span className="text-tiny font-semibold text-ink" data-numeric>
               DN {slip.dnNumber}
             </span>
-            <Badge tone={TONE[slip.workflowStatus]}>{WORKFLOW_LABEL[slip.workflowStatus]}</Badge>
+            <Badge tone={WORKFLOW_TONE[slip.workflowStatus]}>{WORKFLOW_LABEL[slip.workflowStatus]}</Badge>
           </div>
           <p className="text-micro text-ink-faint mt-0.5 truncate">
             SO {slip.soNumber}

@@ -41,6 +41,7 @@ export interface AppUser extends ActivatableRecord {
   isGm: boolean;
   isAdmin: boolean;
   isDriver: boolean;
+  isWarehouse: boolean;
   readonly role: UserRole;
   phone: string | null;
 }
@@ -56,4 +57,5 @@ export interface RoleFlags {
   isGm?: boolean;
   isAdmin?: boolean;
   isDriver?: boolean;
+  isWarehouse?: boolean;
 }

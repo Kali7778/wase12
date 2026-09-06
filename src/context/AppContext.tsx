@@ -83,6 +83,7 @@ export type NavView =
   | 'adminSlips'
   | 'slipReview'
   | 'myDeliveries'
+  | 'receiving'
   | 'ceoPanel'
   | 'gmPanel'
   | 'managerPanel'
@@ -599,9 +600,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const { role: authRole } = useAuth();
   const activeRole: UserRole = (authRole ?? 'driver') as UserRole;
 
-  // A driver has no dashboard to land on, so send them to their own queue.
+  // Neither the driver nor the warehouse keeper can read the dashboard, so
+  // each one lands on the queue they actually work from.
   useEffect(() => {
     if (authRole === 'driver') setCurrentView('myDeliveries');
+    else if (authRole === 'warehouse') setCurrentView('receiving');
   }, [authRole]);
   const [selectedDriverId, setSelectedDriverId] = useState<string>('drv_1'); // Ahmed by default
 

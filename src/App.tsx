@@ -14,6 +14,7 @@ import { NewTripModal } from './components/NewTripModal';
 import { AdminSlipsView } from './views/AdminSlipsView';
 import { SlipReviewView } from './views/SlipReviewView';
 import { DriverSlipsView } from './views/DriverSlipsView';
+import { ReceivingView } from './views/ReceivingView';
 import { DashboardView } from './views/DashboardView';
 import { TripsView } from './views/TripsView';
 import { DispatcherView } from './views/DispatcherView';
@@ -59,6 +60,8 @@ const MainLayout: React.FC = () => {
         return <SlipReviewView />;
       case 'myDeliveries':
         return <DriverSlipsView />;
+      case 'receiving':
+        return <ReceivingView />;
       case 'dashboard':
         return <DashboardView onOpenNewTripModal={() => setShowNewTripModal(true)} />;
       case 'trips':

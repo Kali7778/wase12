@@ -5,6 +5,7 @@ import type {
   DeliveryNote,
   DeliveryNoteLine,
   DeliveryNoteWithLines,
+  DiscrepancyReason,
   DnWorkflowStatus,
   DuplicateMatch,
   UploadBatch,
@@ -66,10 +67,17 @@ function toLine(row: Tables<'delivery_note_lines'>): DeliveryNoteLine {
     status: row.status,
     receivedAt: row.received_at,
     receivedBy: row.received_by,
+    discrepancyCode: row.discrepancy_code,
     discrepancyReason: row.discrepancy_reason,
+    arrivalPhotoPath: row.arrival_photo_path,
     notes: row.notes,
   };
 }
+
+/** The shape PostgREST returns for `delivery_notes` embedded with its lines. */
+type NoteRowWithLines = Tables<'delivery_notes'> & {
+  delivery_note_lines: Tables<'delivery_note_lines'>[] | null;
+};
 
 class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, DeliveryNote> {
   constructor() {
@@ -114,6 +122,14 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
       notes: row.notes,
       updatedAt: row.updated_at,
     };
+  }
+
+  /** Maps the rows of any `delivery_notes` query that embedded its lines. */
+  private withLines(rows: unknown): DeliveryNoteWithLines[] {
+    return ((rows ?? []) as NoteRowWithLines[]).map((row) => {
+      const { delivery_note_lines: lines, ...header } = row;
+      return { ...this.toModel(header), lines: (lines ?? []).map(toLine) };
+    });
   }
 
   /**
@@ -205,12 +221,7 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
 
     if (error) throw toAppError(error, 'Loading delivery notes');
 
-    return (data ?? []).map((row) => {
-      const { delivery_note_lines: lines, ...header } = row as Tables<'delivery_notes'> & {
-        delivery_note_lines: Tables<'delivery_note_lines'>[];
-      };
-      return { ...this.toModel(header), lines: (lines ?? []).map(toLine) };
-    });
+    return this.withLines(data);
   }
 
   /** Delivery notes at a given point in the workflow, with their lines. */
@@ -227,12 +238,7 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
 
     if (error) throw toAppError(error, 'Loading delivery notes');
 
-    return (data ?? []).map((row) => {
-      const { delivery_note_lines: lines, ...header } = row as Tables<'delivery_notes'> & {
-        delivery_note_lines: Tables<'delivery_note_lines'>[];
-      };
-      return { ...this.toModel(header), lines: (lines ?? []).map(toLine) };
-    });
+    return this.withLines(data);
   }
 
   /** Hands slips to the GM. Atomic — a partial send is not possible. */
@@ -346,12 +352,84 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
 
     if (error) throw toAppError(error, 'Loading your delivery notes');
 
-    return (data ?? []).map((row) => {
-      const { delivery_note_lines: lines, ...header } = row as Tables<'delivery_notes'> & {
-        delivery_note_lines: Tables<'delivery_note_lines'>[];
-      };
-      return { ...this.toModel(header), lines: (lines ?? []).map(toLine) };
+    return this.withLines(data);
+  }
+
+  /**
+   * The warehouse receiving queue — notes a driver is carrying right now.
+   *
+   * Backed by a partial index on `workflow_status = 'sent_to_driver'`, so the
+   * cost tracks the size of the open queue and not the size of history.
+   */
+  async listReceivingQueue(limit = 100): Promise<DeliveryNoteWithLines[]> {
+    const { data, error } = await supabase
+      .from('delivery_notes')
+      .select('*, delivery_note_lines(*)')
+      .eq('workflow_status', 'sent_to_driver')
+      .order('driver_sent_at', { ascending: false, nullsFirst: false })
+      .limit(limit);
+
+    if (error) throw toAppError(error, 'Loading the receiving queue');
+    return this.withLines(data);
+  }
+
+  /** Notes already counted, newest first — the keeper's own recent work. */
+  async listReceived(limit = 30): Promise<DeliveryNoteWithLines[]> {
+    const { data, error } = await supabase
+      .from('delivery_notes')
+      .select('*, delivery_note_lines(*)')
+      .eq('workflow_status', 'received')
+      .order('arrived_at', { ascending: false, nullsFirst: false })
+      .limit(limit);
+
+    if (error) throw toAppError(error, 'Loading received delivery notes');
+    return this.withLines(data);
+  }
+
+  /** Stores an arrival photo in the private bucket and returns its path. */
+  async uploadArrivalPhoto(file: File, dnNumber: string): Promise<string> {
+    const extension = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const safeDn = dnNumber.replace(/[^A-Za-z0-9_-]/g, '') || 'unknown';
+    const path = `arrivals/${safeDn}_${Date.now()}.${extension}`;
+
+    const { error } = await supabase.storage
+      .from(DELIVERY_NOTES_BUCKET)
+      .upload(path, file, { contentType: file.type || 'image/jpeg', upsert: false });
+
+    if (error) throw toAppError(error, 'Uploading the arrival photo');
+    return path;
+  }
+
+  /**
+   * Confirms what actually arrived.
+   *
+   * This is the only path by which stock comes into existence, and it adds
+   * exactly `arrivedQty` — never the quantity printed on the supplier's note.
+   * Every rule behind it (who may call this, whether a reason is required and
+   * whether that reason points the right way) is enforced in the database, so
+   * the UI cannot talk its way past any of them.
+   */
+  async receiveLine(input: {
+    lineId: string;
+    arrivedQty: number;
+    warehouseId: string;
+    discrepancyCode?: DiscrepancyReason | null;
+    discrepancyNote?: string | null;
+    arrivalPhotoPath?: string | null;
+    notes?: string | null;
+  }): Promise<DeliveryNoteLine> {
+    const { data, error } = await this.db.rpc('receive_delivery_note_line', {
+      p_line_id: input.lineId,
+      p_arrived_qty: input.arrivedQty,
+      p_warehouse_id: input.warehouseId,
+      p_discrepancy_code: input.discrepancyCode ?? undefined,
+      p_discrepancy_note: input.discrepancyNote ?? undefined,
+      p_arrival_photo_path: input.arrivalPhotoPath ?? undefined,
+      p_notes: input.notes ?? undefined,
     });
+
+    if (error) throw toAppError(error, 'Confirming the arrival');
+    return toLine(data as Tables<'delivery_note_lines'>);
   }
 
   /** GM approves or rejects a slip. */
