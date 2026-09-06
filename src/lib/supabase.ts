@@ -12,9 +12,16 @@ const url = import.meta.env.VITE_SUPABASE_URL;
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!url || !anonKey) {
+  // Vite reads these at BUILD time, not at run time, so a hosted deployment
+  // needs them set in the host's environment settings BEFORE the build — and
+  // needs a fresh deploy afterwards. Adding them to an existing build does
+  // nothing. `.env.local` is deliberately not committed, so a host that was
+  // never configured produces exactly this error.
   throw new Error(
-    'Supabase configuration is missing. Set VITE_SUPABASE_URL and ' +
-      'VITE_SUPABASE_ANON_KEY in .env.local, then restart the dev server.',
+    'Supabase configuration is missing: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY ' +
+      'are not set in this build. Locally, put them in .env.local and restart the dev ' +
+      'server. On a host such as Vercel, add them to the project environment variables ' +
+      'and redeploy — these values are baked in when the site is built.',
   );
 }
 
