@@ -125,3 +125,9 @@ sample-data/private/
 *.bak
 *.old
 *.orig
+
+#  Playwright
+test-results/
+playwright-report/
+blob-report/
+.playwright/

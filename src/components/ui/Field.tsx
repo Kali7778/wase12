@@ -40,7 +40,16 @@ export const Field: React.FC<FieldProps> = ({
   <div className={className}>
     <label htmlFor={htmlFor} className="block text-micro font-medium text-ink-soft mb-1">
       {label}
-      {required && <span className="text-risk ml-0.5">*</span>}
+      {/*
+        The asterisk is decoration. Left in the accessible name it makes the
+        field announce as "Note star"; the control's own `required` attribute
+        is what actually tells assistive technology the field is mandatory.
+      */}
+      {required && (
+        <span className="text-risk ml-0.5" aria-hidden="true">
+          *
+        </span>
+      )}
     </label>
     {children}
     {error ? (

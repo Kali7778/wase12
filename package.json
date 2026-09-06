@@ -9,7 +9,11 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test:parser": "tsx scripts/test-parser.mts"
+    "test:parser": "tsx scripts/test-parser.mts",
+    "test:e2e": "playwright test --project=readonly",
+    "test:e2e:full": "playwright test",
+    "test:e2e:ui": "playwright test --project=readonly --ui",
+    "test:e2e:demo": "playwright test --project=demo --headed"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -32,6 +36,7 @@
     "vite": "^6.2.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
