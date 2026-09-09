@@ -11,7 +11,6 @@ import type {
   UploadBatch,
 } from '../models/deliveryNote';
 import type { Recipient, WorkflowEntry } from '../models/deliveryNote';
-import { stampDeliveryNote, stampedPathFor } from '../utils/pdfStamp';
 import type { Tables } from '../types/database';
 
 /** Everything needed to save one uploaded slip. */
@@ -287,59 +286,24 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
   /**
    * Hands an approved slip to a driver.
    *
-   * A stamped COPY of the delivery note is produced and stored alongside the
-   * original, which is never modified — it is the supplier's document and the
-   * only record of what was actually dispatched.
-   *
-   * If stamping fails the handover still proceeds with the unstamped original,
-   * because blocking a dispatch over a cosmetic stamp would be the worse
-   * outcome. The caller is told through the returned `stamped` flag.
+   * The supplier's delivery note travels exactly as it arrived — nothing is
+   * written on it and no copy is made. Who approved the handover and who is
+   * carrying it is our record, not the supplier's, and it belongs on our own
+   * document rather than on their paper.
    */
   async handToDriver(input: {
     slip: DeliveryNote;
     driverId: string;
-    driverName: string;
-    approvedByName: string;
     note?: string;
-  }): Promise<{ slip: DeliveryNote; stamped: boolean }> {
-    let stampedPath: string | undefined;
-
-    if (input.slip.pdfStoragePath) {
-      try {
-        const { data, error } = await supabase.storage
-          .from(DELIVERY_NOTES_BUCKET)
-          .download(input.slip.pdfStoragePath);
-        if (error || !data) throw error ?? new Error('No file');
-
-        const stamped = await stampDeliveryNote(await data.arrayBuffer(), {
-          approvedBy: input.approvedByName,
-          grantedTo: input.driverName,
-          dnNumber: input.slip.dnNumber,
-        });
-
-        const path = stampedPathFor(input.slip.pdfStoragePath);
-        const { error: upErr } = await supabase.storage
-          .from(DELIVERY_NOTES_BUCKET)
-          .upload(path, new Blob([stamped as BlobPart], { type: 'application/pdf' }), {
-            contentType: 'application/pdf',
-            upsert: true,
-          });
-        if (upErr) throw upErr;
-        stampedPath = path;
-      } catch {
-        stampedPath = undefined;
-      }
-    }
-
+  }): Promise<DeliveryNote> {
     const { data, error } = await this.db.rpc('send_dn_to_driver', {
       p_dn_id: input.slip.id,
       p_driver_id: input.driverId,
-      p_stamped_pdf_path: stampedPath ?? null,
       p_note: input.note ?? null,
     });
 
     if (error) throw toAppError(error, 'Handing the slip to the driver');
-    return { slip: this.toModel(data as Tables<'delivery_notes'>), stamped: Boolean(stampedPath) };
+    return this.toModel(data as Tables<'delivery_notes'>);
   }
 
   /** Slips currently assigned to the signed-in driver. */

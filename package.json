@@ -11,7 +11,7 @@
     "lint": "tsc --noEmit",
     "test:parser": "tsx scripts/test-parser.mts",
     "test:e2e": "playwright test --project=readonly",
-    "test:e2e:full": "playwright test",
+    "test:e2e:full": "playwright test --project=readonly --project=mutating",
     "test:e2e:ui": "playwright test --project=readonly --ui",
     "test:e2e:demo": "playwright test --project=demo --headed"
   },

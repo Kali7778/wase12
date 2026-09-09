@@ -6,7 +6,6 @@ import {
   Inbox,
   Loader2,
   RefreshCw,
-  Stamp,
   Truck,
   X,
 } from 'lucide-react';
@@ -15,7 +14,6 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Field, Select, Textarea } from '../components/ui/Field';
 import { useAuth } from '../context/AuthContext';
-import { fullName } from '../models/masterData';
 import { deliveryNoteService } from '../services/DeliveryNoteService';
 import type { DeliveryNoteWithLines, Recipient } from '../models/deliveryNote';
 import { WORKFLOW_LABEL, WORKFLOW_TONE } from '../models/deliveryNote';
@@ -29,7 +27,7 @@ import { WORKFLOW_LABEL, WORKFLOW_TONE } from '../models/deliveryNote';
  * had nowhere to arrive.
  */
 export const SlipReviewView: React.FC = () => {
-  const { can, profile } = useAuth();
+  const { can } = useAuth();
   const [slips, setSlips] = useState<DeliveryNoteWithLines[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -100,8 +98,8 @@ export const SlipReviewView: React.FC = () => {
   };
 
   /**
-   * Hands a slip to a driver. A stamped copy of the delivery note is created;
-   * the supplier original is left untouched.
+   * Hands a slip to a driver. The supplier's delivery note is passed on exactly
+   * as it arrived — nothing is written on it and no copy is made.
    */
   const handOver = async (slip: DeliveryNoteWithLines) => {
     const driver = drivers.find((d) => d.id === driverId);
@@ -109,17 +107,10 @@ export const SlipReviewView: React.FC = () => {
     setBusyId(slip.id);
     setMessage(null);
     try {
-      const { stamped } = await deliveryNoteService.handToDriver({
-        slip,
-        driverId: driver.id,
-        driverName: driver.fullName || driver.email,
-        approvedByName: profile ? fullName(profile) || profile.email : 'GM',
-      });
+      await deliveryNoteService.handToDriver({ slip, driverId: driver.id });
       setMessage({
         tone: 'ok',
-        text: stamped
-          ? `Sent to ${driver.fullName}. A stamped copy was attached.`
-          : `Sent to ${driver.fullName}. The slip could not be stamped, so the original was passed on.`,
+        text: `Sent to ${driver.fullName}.`,
       });
       setHanding(null);
       await refresh();
@@ -200,7 +191,7 @@ export const SlipReviewView: React.FC = () => {
                         label="Driver"
                         htmlFor={`driver-${slip.id}`}
                         required
-                        hint="A stamped copy is created for the driver. The supplier original is kept unchanged."
+                        hint="The supplier's delivery note is passed on exactly as it arrived."
                       >
                         <Select
                           id={`driver-${slip.id}`}
@@ -303,7 +294,7 @@ const SlipRow: React.FC<{
   const line = slip.lines[0];
 
   const openPdf = async () => {
-    const path = slip.stampedPdfPath ?? slip.pdfStoragePath;
+    const path = slip.pdfStoragePath;
     if (!path) return;
     setPreviewBusy(true);
     const url = await deliveryNoteService.getSignedUrl(path);
@@ -334,11 +325,6 @@ const SlipRow: React.FC<{
               <Truck className="w-3 h-3" />
               With {driverName ?? "driver"}
               {slip.driverSentAt && ` · ${new Date(slip.driverSentAt).toLocaleString()}`}
-              {slip.stampedPdfPath && (
-                <span className="inline-flex items-center gap-1 text-ok">
-                  <Stamp className="w-3 h-3" /> stamped
-                </span>
-              )}
             </p>
           )}
         </div>
@@ -365,8 +351,8 @@ const SlipRow: React.FC<{
           icon={Eye}
           onClick={openPdf}
           loading={previewBusy}
-          disabled={!slip.pdfStoragePath && !slip.stampedPdfPath}
-          title={slip.stampedPdfPath ? 'Open the stamped slip' : 'Open the original slip'}
+          disabled={!slip.pdfStoragePath}
+          title={slip.pdfStoragePath ? 'Open the delivery note' : 'No file attached'}
         >
           View
         </Button>

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Download, FileStack, Loader2, RefreshCw, Stamp, Truck } from 'lucide-react';
+import { Download, FileStack, Loader2, RefreshCw, Truck } from 'lucide-react';
 import { EmptyState, PageHeader, Panel } from '../components/ui/Panel';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -10,9 +10,9 @@ import type { DeliveryNoteWithLines } from '../models/deliveryNote';
 /**
  * The driver's own delivery notes.
  *
- * Shows only the slips the GM has handed to this driver. The copy offered here
- * is the stamped one, because that is the document carrying the approval the
- * driver may be asked to show.
+ * Shows only the slips the GM has handed to this driver. The file offered here
+ * is the supplier's delivery note exactly as it arrived — nothing is added to
+ * it and no copy is made.
  */
 export const DriverSlipsView: React.FC = () => {
   const { profile } = useAuth();
@@ -39,7 +39,7 @@ export const DriverSlipsView: React.FC = () => {
   }, [refresh]);
 
   const openSlip = async (slip: DeliveryNoteWithLines) => {
-    const path = slip.stampedPdfPath ?? slip.pdfStoragePath;
+    const path = slip.pdfStoragePath;
     if (!path) return;
     setOpeningId(slip.id);
     const url = await deliveryNoteService.getSignedUrl(path);
@@ -93,11 +93,6 @@ export const DriverSlipsView: React.FC = () => {
                       <span className="text-tiny font-semibold text-ink" data-numeric>
                         DN {slip.dnNumber}
                       </span>
-                      {slip.stampedPdfPath && (
-                        <Badge tone="ok" icon={Stamp}>
-                          Approved
-                        </Badge>
-                      )}
                     </div>
                     <p className="text-micro text-ink-faint mt-0.5 truncate">
                       {line ? line.itemDescription : 'No item'}
@@ -130,7 +125,7 @@ export const DriverSlipsView: React.FC = () => {
                     variant="primary"
                     icon={Download}
                     loading={openingId === slip.id}
-                    disabled={!slip.stampedPdfPath && !slip.pdfStoragePath}
+                    disabled={!slip.pdfStoragePath}
                     onClick={() => openSlip(slip)}
                   >
                     Open slip
