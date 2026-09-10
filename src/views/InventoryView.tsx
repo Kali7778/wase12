@@ -265,14 +265,14 @@ export const InventoryView: React.FC = () => {
               <thead>
                 <tr className="border-b border-line bg-sunken">
                   <Th>DN No</Th>
-                  <Th>SO No</Th>
-                  <Th>Date</Th>
+                  <Th hide="2xl">SO No</Th>
+                  <Th hide="xl">Date</Th>
                   <Th>Item</Th>
                   <Th align="right">PDF Qty</Th>
                   <Th align="right">Arrived</Th>
                   <Th align="right">Missing</Th>
-                  <Th align="right">In</Th>
-                  <Th align="right">Out</Th>
+                  <Th align="right" hide="2xl">In</Th>
+                  <Th align="right" hide="2xl">Out</Th>
                   <Th align="right">Balance</Th>
                   <Th>Status</Th>
                 </tr>
@@ -289,12 +289,17 @@ export const InventoryView: React.FC = () => {
                         {row.dnNumber}
                       </span>
                     </Td>
-                    <Td numeric muted>
+                    <Td numeric muted hide="2xl">
                       {row.soNumber}
                     </Td>
-                    <Td muted>{row.printDate ?? '—'}</Td>
+                    <Td muted hide="xl">
+                      {row.printDate ?? '—'}
+                    </Td>
                     <Td>
-                      <span className="block max-w-[16rem] truncate" title={row.itemDescription}>
+                      <span
+                        className="block max-w-[10rem] lg:max-w-[16rem] truncate"
+                        title={row.itemDescription}
+                      >
                         {row.itemDescription}
                       </span>
                     </Td>
@@ -307,10 +312,10 @@ export const InventoryView: React.FC = () => {
                     <Td align="right">
                       <MissingCell row={row} />
                     </Td>
-                    <Td numeric align="right" muted>
+                    <Td numeric align="right" muted hide="2xl">
                       {row.inQty}
                     </Td>
-                    <Td numeric align="right" muted>
+                    <Td numeric align="right" muted hide="2xl">
                       {row.outQty}
                     </Td>
                     <Td numeric align="right">
@@ -360,15 +365,37 @@ export const InventoryView: React.FC = () => {
   );
 };
 
-const Th: React.FC<{ children: React.ReactNode; align?: 'left' | 'right' }> = ({
-  children,
-  align = 'left',
-}) => (
+/**
+ * Columns drop away as the window narrows, least important first.
+ *
+ * A table of eleven columns cannot fit a laptop, and letting it scroll
+ * sideways hides exactly the figures the screen exists for — the reader has
+ * no way of knowing a Missing column is out there at all. What is left at the
+ * narrowest size is the question the client actually asks: what was claimed,
+ * what arrived, what is short, what is left.
+ */
+// Breakpoints watch the WINDOW, but this table only gets the window minus the
+// 240px sidebar. Each threshold is therefore one step higher than the width
+// the columns actually need.
+type Hide = 'never' | 'lg' | 'xl' | '2xl';
+
+const HIDE_CLASS: Record<Hide, string> = {
+  never: '',
+  lg: 'hidden lg:table-cell',
+  xl: 'hidden xl:table-cell',
+  '2xl': 'hidden 2xl:table-cell',
+};
+
+const Th: React.FC<{
+  children: React.ReactNode;
+  align?: 'left' | 'right';
+  hide?: Hide;
+}> = ({ children, align = 'left', hide = 'never' }) => (
   <th
     scope="col"
     className={`px-3 py-2 font-semibold text-ink-soft whitespace-nowrap ${
       align === 'right' ? 'text-right' : 'text-left'
-    }`}
+    } ${HIDE_CLASS[hide]}`}
   >
     {children}
   </th>
@@ -379,12 +406,13 @@ const Td: React.FC<{
   align?: 'left' | 'right';
   numeric?: boolean;
   muted?: boolean;
-}> = ({ children, align = 'left', numeric, muted }) => (
+  hide?: Hide;
+}> = ({ children, align = 'left', numeric, muted, hide = 'never' }) => (
   <td
     {...(numeric ? { 'data-numeric': true } : {})}
     className={`px-3 py-2 whitespace-nowrap ${align === 'right' ? 'text-right' : ''} ${
       muted ? 'text-ink-soft' : 'text-ink'
-    }`}
+    } ${HIDE_CLASS[hide]}`}
   >
     {children}
   </td>

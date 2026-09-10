@@ -69,7 +69,8 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu, onOpenMobile
       ref={headerRef}
       className="sticky top-0 z-30 h-14 shrink-0 bg-surface/85 backdrop-blur border-b border-line"
     >
-      <div className="h-full px-3 sm:px-4 flex items-center gap-3">
+      {/* Same cap as <main>, so the header and the content line up. */}
+      <div className="h-full mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 flex items-center gap-3">
         <Button
           variant="ghost"
           size="sm"

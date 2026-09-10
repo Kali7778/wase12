@@ -121,9 +121,23 @@ const MainLayout: React.FC = () => {
         {/* Global Header */}
         <Header onOpenMobileSidebar={() => setMobileSidebarOpen(true)} />
 
-        {/* Dynamic View Canvas */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl w-full mx-auto">
-          {renderActiveView()}
+        {/*
+          Dynamic View Canvas.
+
+          The cap here (and the matching one inside Header) exists so the two
+          stay aligned. It used to be max-w-7xl on the content alone while the
+          header spanned the whole window, which left the content in a 1280px
+          column with the header stretching past it on both sides, and the
+          inventory table scrolling sideways next to space it could not use.
+
+          1600px is wide enough for the register's eleven columns with room to
+          spare, and narrow enough that a half-empty panel does not stretch
+          across a 2560px monitor looking abandoned.
+        */}
+        <main className="flex-1 w-full min-w-0 overflow-y-auto">
+          <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">
+            {renderActiveView()}
+          </div>
         </main>
       </div>
 
