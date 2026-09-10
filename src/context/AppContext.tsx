@@ -84,6 +84,7 @@ export type NavView =
   | 'slipReview'
   | 'myDeliveries'
   | 'receiving'
+  | 'stockOut'
   | 'ceoPanel'
   | 'gmPanel'
   | 'managerPanel'

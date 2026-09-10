@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Navigation,
   PackageCheck,
+  PackageMinus,
   PackagePlus,
   Route,
   ScrollText,
@@ -88,6 +89,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
           icon: PackageCheck,
           // The keeper counts; the GM and superadmin can stand in for them.
           roles: ['ceo', 'gm', 'warehouse'],
+        },
+        {
+          id: 'stockOut',
+          label: 'Stock Out',
+          icon: PackageMinus,
+          // The other half of the keeper's job: what leaves the warehouse.
+          roles: ['ceo', 'gm', 'warehouse', 'dispatcher', 'manager'],
         },
         {
           id: 'dispatcher',
