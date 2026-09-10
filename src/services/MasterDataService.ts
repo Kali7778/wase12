@@ -52,6 +52,7 @@ class ItemServiceImpl extends BaseService<Tables<'items'>, Item> {
       descriptionAr: row.description_ar,
       uom: row.uom,
       unitWeightKg: row.unit_weight_kg,
+      isAutoAdded: row.is_auto_added,
     };
   }
 
@@ -59,6 +60,62 @@ class ItemServiceImpl extends BaseService<Tables<'items'>, Item> {
   async findByItemNumber(itemNumber: string): Promise<Item | null> {
     const matches = await this.findWhere('item_number', itemNumber);
     return matches[0] ?? null;
+  }
+
+  /**
+   * Every product, with how many delivery note lines use it.
+   *
+   * Unverified products come first: they arrived from a PDF nobody has
+   * checked, and one of them could be a parsing mistake rather than a real
+   * product. They are the only rows here that need anybody's attention.
+   */
+  async listWithUsage(): Promise<Item[]> {
+    const { data, error } = await this.db
+      .from('items')
+      .select('*, delivery_note_lines(count)')
+      .order('is_auto_added', { ascending: false })
+      .order('item_number', { ascending: true });
+
+    if (error) throw toAppError(error, 'Loading products');
+
+    type WithCount = Tables<'items'> & { delivery_note_lines: { count: number }[] | null };
+    return ((data ?? []) as WithCount[]).map((row) => ({
+      ...this.toModel(row),
+      usageCount: row.delivery_note_lines?.[0]?.count ?? 0,
+    }));
+  }
+
+  /**
+   * Corrects a product.
+   *
+   * Saving is what marks it verified: a person has now looked at it, so it
+   * stops being flagged. Nothing that arrives later overwrites this — the
+   * upload function only ever creates a product it has never seen.
+   */
+  async correct(
+    id: string,
+    changes: { descriptionEn: string; uom: string; unitWeightKg: number | null },
+  ): Promise<Item> {
+    const { data, error } = await this.db
+      .from('items')
+      .update({
+        description_en: changes.descriptionEn.trim(),
+        uom: changes.uom.trim(),
+        unit_weight_kg: changes.unitWeightKg,
+        is_auto_added: false,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw toAppError(error, 'Saving the product');
+    return this.toModel(data as Tables<'items'>);
+  }
+
+  /** Retires a product without deleting it — history must keep working. */
+  async setActive(id: string, isActive: boolean): Promise<void> {
+    const { error } = await this.db.from('items').update({ is_active: isActive }).eq('id', id);
+    if (error) throw toAppError(error, 'Updating the product');
   }
 }
 

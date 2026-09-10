@@ -364,6 +364,7 @@ export type Database = {
           description_en: string
           id: string
           is_active: boolean
+          is_auto_added: boolean
           item_number: string
           unit_weight_kg: number | null
           uom: string
@@ -374,6 +375,7 @@ export type Database = {
           description_en: string
           id?: string
           is_active?: boolean
+          is_auto_added?: boolean
           item_number: string
           unit_weight_kg?: number | null
           uom: string
@@ -384,6 +386,7 @@ export type Database = {
           description_en?: string
           id?: string
           is_active?: boolean
+          is_auto_added?: boolean
           item_number?: string
           unit_weight_kg?: number | null
           uom?: string

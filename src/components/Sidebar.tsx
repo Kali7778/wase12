@@ -122,6 +122,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
           roles: ['ceo', 'gm', 'manager', 'dispatcher', 'warehouse'],
         },
         {
+          id: 'products',
+          label: 'Products',
+          icon: Boxes,
+          // Built from the delivery notes; this is where they get checked.
+          roles: ['ceo', 'gm', 'manager', 'admin'],
+        },
+        {
           id: 'supplierInventory',
           label: 'Supplier Inventory',
           icon: PackagePlus,

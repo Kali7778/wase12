@@ -18,6 +18,10 @@ export interface Item extends ActivatableRecord {
   descriptionAr: string | null;
   uom: string;
   unitWeightKg: number | null;
+  /** Created from an uploaded delivery note and not yet checked by a person. */
+  isAutoAdded: boolean;
+  /** How many delivery note lines use it. Only present when asked for. */
+  usageCount?: number;
 }
 
 export interface Warehouse extends ActivatableRecord {

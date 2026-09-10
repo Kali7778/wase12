@@ -17,6 +17,7 @@ import { DriverSlipsView } from './views/DriverSlipsView';
 import { ReceivingView } from './views/ReceivingView';
 import { StockOutView } from './views/StockOutView';
 import { InventoryView } from './views/InventoryView';
+import { ProductsView } from './views/ProductsView';
 import { DashboardView } from './views/DashboardView';
 import { TripsView } from './views/TripsView';
 import { DispatcherView } from './views/DispatcherView';
@@ -68,6 +69,8 @@ const MainLayout: React.FC = () => {
         return <StockOutView />;
       case 'inventory':
         return <InventoryView />;
+      case 'products':
+        return <ProductsView />;
       case 'dashboard':
         return <DashboardView onOpenNewTripModal={() => setShowNewTripModal(true)} />;
       case 'trips':
