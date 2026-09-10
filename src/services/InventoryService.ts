@@ -1,7 +1,59 @@
 import { supabase } from '../lib/supabase';
 import { toAppError } from '../lib/errors';
-import type { IssueReason, LotBalance } from '../models/inventory';
+import type {
+  InventoryFilter,
+  InventoryPage,
+  InventoryRow,
+  IssueReason,
+  LotBalance,
+} from '../models/inventory';
 import type { Tables } from '../types/database';
+
+/**
+ * The register view is spelled with the client's own column headings, spaces
+ * and all. Those names work through PostgREST — filtering, ordering, `or()`
+ * and pagination were all checked against the live API — but they are ugly to
+ * repeat, so they are named once here.
+ */
+const COL = {
+  dn: 'DN No',
+  so: 'SO No',
+  item: 'Item',
+  uom: 'UOM',
+  pdfQty: 'PDF Qty',
+  arrivedQty: 'Arrived Qty',
+  missingQty: 'Missing Qty',
+  inQty: 'In Qty',
+  outQty: 'Out Qty',
+  balance: 'Balance',
+  status: 'Status',
+  discrepancy: 'Discrepancy',
+} as const;
+
+function toRow(row: Tables<'v_inventory_dashboard'>): InventoryRow {
+  return {
+    deliveryNoteId: row.delivery_note_id ?? '',
+    dnNumber: row[COL.dn] ?? '',
+    soNumber: row[COL.so] ?? '',
+    printDate: row.print_date,
+    supplier: row.supplier ?? '',
+
+    itemNumber: row.item_number ?? '',
+    itemDescription: row[COL.item] ?? '',
+    uom: row[COL.uom] ?? '',
+
+    pdfQty: Number(row[COL.pdfQty] ?? 0),
+    arrivedQty: Number(row[COL.arrivedQty] ?? 0),
+    missingQty: Number(row[COL.missingQty] ?? 0),
+    inQty: Number(row[COL.inQty] ?? 0),
+    outQty: Number(row[COL.outQty] ?? 0),
+    balanceQty: Number(row[COL.balance] ?? 0),
+
+    status: row[COL.status] ?? 'not_arrived',
+    discrepancyCode: row[COL.discrepancy],
+    receivedAt: row.received_at,
+  };
+}
 
 /** `v_lot_balances` with the delivery note header PostgREST embeds alongside it. */
 type LotRow = Tables<'v_lot_balances'> & {
@@ -44,6 +96,121 @@ const LOT_SELECT = '*, delivery_notes(dn_number, so_number)';
  * directly, and the grant that would let it do so has been revoked.
  */
 class InventoryServiceImpl {
+  /**
+   * A page of the inventory register.
+   *
+   * Filtering, sorting and paging all happen in the database. Pulling the
+   * whole register into the browser and narrowing it there would work today
+   * with a handful of rows and quietly stop working later — and the view was
+   * rewritten in 0017 precisely so the cost tracks the size of the answer.
+   */
+  async listPage(
+    filter: InventoryFilter = {},
+    page = 0,
+    pageSize = 50,
+  ): Promise<InventoryPage> {
+    let q = supabase
+      .from('v_inventory_dashboard')
+      .select('*', { count: 'exact' });
+
+    const term = filter.search?.trim();
+    if (term) {
+      const like = `%${term}%`;
+      q = q.or(
+        [
+          `"${COL.dn}".ilike.${like}`,
+          `"${COL.so}".ilike.${like}`,
+          `item_number.ilike.${like}`,
+          `"${COL.item}".ilike.${like}`,
+        ].join(','),
+      );
+    }
+
+    if (filter.status && filter.status !== 'all') {
+      q = q.eq(COL.status, filter.status);
+    }
+
+    // A note that has not been counted yet is short by its whole quantity,
+    // which is not a discrepancy — it simply has not arrived. Only a line
+    // somebody has actually counted can disagree with the delivery note.
+    if (filter.discrepanciesOnly) {
+      q = q.not('received_at', 'is', null).neq(COL.missingQty, 0);
+    }
+
+    if (filter.fromDate) q = q.gte('print_date', filter.fromDate);
+    if (filter.toDate) q = q.lte('print_date', filter.toDate);
+
+    const from = page * pageSize;
+    const { data, error, count } = await q
+      .order('print_date', { ascending: false, nullsFirst: false })
+      .order(COL.dn, { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) throw toAppError(error, 'Loading the inventory register');
+
+    return {
+      rows: (data ?? []).map(toRow),
+      total: count ?? 0,
+    };
+  }
+
+  /**
+   * Totals across everything the filter matches, not just the visible page.
+   *
+   * A summary that only added up the current page would be worse than no
+   * summary: it would look authoritative and be wrong.
+   */
+  async summarise(filter: InventoryFilter = {}): Promise<{
+    notes: number;
+    pdfQty: number;
+    missingQty: number;
+    balanceQty: number;
+    discrepancies: number;
+  }> {
+    // Every matching row is needed to total it, so ask for only the four
+    // columns that go into the sum rather than the whole register.
+    let q = supabase
+      .from('v_inventory_dashboard')
+      .select(`"${COL.pdfQty}","${COL.missingQty}","${COL.balance}",received_at`);
+
+    const term = filter.search?.trim();
+    if (term) {
+      const like = `%${term}%`;
+      q = q.or(
+        [
+          `"${COL.dn}".ilike.${like}`,
+          `"${COL.so}".ilike.${like}`,
+          `item_number.ilike.${like}`,
+          `"${COL.item}".ilike.${like}`,
+        ].join(','),
+      );
+    }
+    if (filter.status && filter.status !== 'all') q = q.eq(COL.status, filter.status);
+    if (filter.discrepanciesOnly) q = q.not('received_at', 'is', null).neq(COL.missingQty, 0);
+    if (filter.fromDate) q = q.gte('print_date', filter.fromDate);
+    if (filter.toDate) q = q.lte('print_date', filter.toDate);
+
+    const { data, error } = await q;
+    if (error) throw toAppError(error, 'Totalling the inventory register');
+
+    const rows = data ?? [];
+    return {
+      notes: rows.length,
+      pdfQty: rows.reduce((s, r) => s + Number(r[COL.pdfQty] ?? 0), 0),
+      missingQty: rows.reduce((s, r) => s + Number(r[COL.missingQty] ?? 0), 0),
+      balanceQty: rows.reduce((s, r) => s + Number(r[COL.balance] ?? 0), 0),
+      discrepancies: rows.filter(
+        (r) => r.received_at !== null && Number(r[COL.missingQty] ?? 0) !== 0,
+      ).length,
+    };
+  }
+
+  /** Every matching row, for export. Paging is skipped on purpose here. */
+  async listAllForExport(filter: InventoryFilter = {}, cap = 5000): Promise<InventoryRow[]> {
+    const { rows } = await this.listPage(filter, 0, cap);
+    return rows;
+  }
+
   /**
    * Lots that still hold stock, newest arrival first.
    *

@@ -66,3 +66,49 @@ export const ISSUE_REFERENCE_HINT: Record<IssueReason, string> = {
   transfer_out: 'Destination warehouse or transfer number',
   adjustment: 'Approval or stock count reference',
 };
+
+/**
+ * One row of the inventory register — the table the client asked for.
+ *
+ * Every number here is derived from the append-only ledger at read time.
+ * `missingQty` is negative when more arrived than the delivery note claimed.
+ */
+export interface InventoryRow {
+  deliveryNoteId: string;
+  dnNumber: string;
+  soNumber: string;
+  printDate: string | null;
+  supplier: string;
+
+  itemNumber: string;
+  itemDescription: string;
+  uom: string;
+
+  pdfQty: number;
+  arrivedQty: number;
+  missingQty: number;
+  inQty: number;
+  outQty: number;
+  balanceQty: number;
+
+  status: DnStatus;
+  discrepancyCode: DiscrepancyReason | null;
+  receivedAt: string | null;
+}
+
+/** What the register can be narrowed down to. */
+export interface InventoryFilter {
+  /** Matches delivery note, sales order, item number or description. */
+  search?: string;
+  status?: DnStatus | 'all';
+  /** Only rows counted with a quantity that did not match the note. */
+  discrepanciesOnly?: boolean;
+  fromDate?: string;
+  toDate?: string;
+}
+
+/** A page of the register, with the total so the pager knows where it is. */
+export interface InventoryPage {
+  rows: InventoryRow[];
+  total: number;
+}

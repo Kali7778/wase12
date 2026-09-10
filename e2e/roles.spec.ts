@@ -82,6 +82,10 @@ test.describe('navigation is filtered by role', () => {
     expect(labels).not.toContain('Slip Review');
     expect(labels).not.toContain('Receiving');
     expect(labels).not.toContain('My Deliveries');
+
+    // The admin reads the register but does not move stock.
+    expect(labels).toContain('Inventory');
+    expect(labels).not.toContain('Stock Out');
   });
 
   test('GM reviews and can receive, but does not upload', async ({ page }) => {
@@ -98,6 +102,9 @@ test.describe('navigation is filtered by role', () => {
     const labels = await navLabels(page);
 
     expect(labels).toContain('Receiving');
+    // Both halves of the keeper's job: what comes in and what goes out.
+    expect(labels).toContain('Stock Out');
+    expect(labels).toContain('Inventory');
     // Entering the expected quantity and confirming the actual one must not
     // land in the same pair of hands.
     expect(labels).not.toContain('Delivery Slips');
@@ -113,6 +120,8 @@ test.describe('navigation is filtered by role', () => {
     expect(labels).not.toContain('Receiving');
     expect(labels).not.toContain('Slip Review');
     expect(labels).not.toContain('Delivery Slips');
+    expect(labels).not.toContain('Stock Out');
+    expect(labels).not.toContain('Inventory');
   });
 });
 

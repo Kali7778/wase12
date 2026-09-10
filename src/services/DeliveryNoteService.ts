@@ -223,6 +223,18 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
     return this.withLines(data);
   }
 
+  /** One delivery note with its lines. */
+  async getWithLines(id: string): Promise<DeliveryNoteWithLines | null> {
+    const { data, error } = await supabase
+      .from('delivery_notes')
+      .select('*, delivery_note_lines(*)')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) throw toAppError(error, 'Loading the delivery note');
+    return data ? (this.withLines([data])[0] ?? null) : null;
+  }
+
   /** Delivery notes at a given point in the workflow, with their lines. */
   async listByWorkflowStatus(
     statuses: DnWorkflowStatus[],

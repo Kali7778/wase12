@@ -11,6 +11,7 @@ import {
   Navigation,
   PackageCheck,
   PackageMinus,
+  PackageSearch,
   PackagePlus,
   Route,
   ScrollText,
@@ -91,13 +92,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
           roles: ['ceo', 'gm', 'warehouse'],
         },
         {
-          id: 'stockOut',
-          label: 'Stock Out',
-          icon: PackageMinus,
-          // The other half of the keeper's job: what leaves the warehouse.
-          roles: ['ceo', 'gm', 'warehouse', 'dispatcher', 'manager'],
-        },
-        {
           id: 'dispatcher',
           label: 'Dispatcher',
           icon: Truck,
@@ -113,6 +107,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
     {
       heading: 'Inventory',
       items: [
+        {
+          id: 'inventory',
+          label: 'Inventory',
+          icon: PackageSearch,
+          // The register the client asked for: claimed, arrived, missing, left.
+          roles: ['ceo', 'gm', 'manager', 'admin', 'warehouse'],
+        },
+        {
+          id: 'stockOut',
+          label: 'Stock Out',
+          icon: PackageMinus,
+          // The other half of the keeper's job: what leaves the warehouse.
+          roles: ['ceo', 'gm', 'manager', 'dispatcher', 'warehouse'],
+        },
         {
           id: 'supplierInventory',
           label: 'Supplier Inventory',

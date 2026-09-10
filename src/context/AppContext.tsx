@@ -85,6 +85,7 @@ export type NavView =
   | 'myDeliveries'
   | 'receiving'
   | 'stockOut'
+  | 'inventory'
   | 'ceoPanel'
   | 'gmPanel'
   | 'managerPanel'
