@@ -109,7 +109,7 @@ export const ProductsView: React.FC = () => {
         <Search className="w-3.5 h-3.5 text-ink-faint absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         <Input
           aria-label="Search products"
-          placeholder="Item number or description"
+          placeholder="Product name or number"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="pl-8"

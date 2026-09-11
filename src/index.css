@@ -1,5 +1,20 @@
 @import 'tailwindcss';
 
+/* ----------------------------------------------------------------------------
+   `dark:` must follow the theme switch, not the operating system.
+
+   Tailwind v4 changed the default: `dark:` compiles to a
+   `prefers-color-scheme: dark` media query unless told otherwise. The app
+   meanwhile toggles a `.dark` class on <html>, and the tokens below key off
+   that class — so the two disagreed. On a phone set to dark mode with the
+   app's own switch off, the 5,800-odd `dark:` utilities turned the page dark
+   while every token stayed light: dark text on dark panels, white cards on a
+   black background.
+
+   This line puts both on the same switch.
+   ------------------------------------------------------------------------- */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ============================================================================
    Design tokens
 
