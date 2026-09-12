@@ -7,6 +7,7 @@ import {
   Loader2,
   PackageCheck,
   RefreshCw,
+  Search,
   X,
 } from 'lucide-react';
 import { EmptyState, PageHeader, Panel } from '../components/ui/Panel';
@@ -46,6 +47,7 @@ export const ReceivingView: React.FC = () => {
   const [openId, setOpenId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -84,12 +86,32 @@ export const ReceivingView: React.FC = () => {
     [queue],
   );
 
+  /*
+   * The driver arrives holding a paper slip, and the number printed on it is
+   * the only thing the keeper has to go on. Scrolling a queue to find it works
+   * while the queue is short and stops working on a busy morning.
+   */
+  const visibleLines = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) return openLines;
+    return openLines.filter(
+      ({ slip, line }) =>
+        slip.dnNumber.toLowerCase().includes(term) ||
+        slip.soNumber.toLowerCase().includes(term) ||
+        line.itemNumber.toLowerCase().includes(term) ||
+        line.itemDescription.toLowerCase().includes(term),
+    );
+  }, [openLines, query]);
+
   return (
     <div className="space-y-5">
       <PageHeader
         title="Receiving"
         description="Count what came off the truck and confirm it. Stock is created here and nowhere else."
-        stats={[{ label: 'awaiting count', value: openLines.length }]}
+        stats={[
+          { label: 'awaiting count', value: openLines.length },
+          ...(query.trim() ? [{ label: 'matching', value: visibleLines.length }] : []),
+        ]}
         actions={
           <Button icon={RefreshCw} size="sm" onClick={refresh} loading={loading}>
             Refresh
@@ -107,20 +129,36 @@ export const ReceivingView: React.FC = () => {
         </div>
       )}
 
+      <div className="relative max-w-sm">
+        <Search className="w-3.5 h-3.5 text-ink-faint absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <Input
+          aria-label="Find a delivery note"
+          placeholder="Delivery note number"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="pl-8"
+          autoFocus
+        />
+      </div>
+
       <Panel title="Awaiting count" flush>
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-4 h-4 animate-spin text-accent" />
           </div>
-        ) : openLines.length === 0 ? (
+        ) : visibleLines.length === 0 ? (
           <EmptyState
             icon={PackageCheck}
-            title="Nothing to receive"
-            description="Delivery notes appear here once the General Manager hands them to a driver."
+            title={openLines.length === 0 ? 'Nothing to receive' : 'No delivery note matches that'}
+            description={
+              openLines.length === 0
+                ? 'Delivery notes appear here once the General Manager hands them to a driver.'
+                : 'Check the number on the slip the driver handed over, or clear the search to see the whole queue.'
+            }
           />
         ) : (
           <ul className="divide-line">
-            {openLines.map(({ slip, line }) => (
+            {visibleLines.map(({ slip, line }) => (
               <li key={line.id}>
                 <QueueRow
                   slip={slip}
