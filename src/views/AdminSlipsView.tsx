@@ -92,6 +92,11 @@ export const AdminSlipsView: React.FC = () => {
 
   const sendSlips = async (ids: string[]) => {
     if (ids.length === 0) return;
+    // A slip with no named recipient is a slip nobody is responsible for.
+    if (!gmId) {
+      setMessage({ tone: 'error', text: 'Choose a General Manager to send these slips to.' });
+      return;
+    }
     setSendingId(ids.length === 1 ? ids[0] : 'bulk');
     setMessage(null);
     try {
@@ -267,23 +272,36 @@ export const AdminSlipsView: React.FC = () => {
               >
                 {allSelected ? 'Clear selection' : 'Select all not sent'}
               </button>
-              {gms.length > 1 && (
+              {/*
+                Shown even when there is only one General Manager. Hiding it
+                below two made "Send to GM" look like a fixed destination:
+                the slip went to whoever happened to be first in the list and
+                the admin never saw a name. Choosing the recipient is the
+                admin's job, so the recipient has to be on screen.
+              */}
+              <label className="flex items-center gap-1.5 text-micro text-ink-faint">
+                To
                 <select
                   value={gmId}
                   onChange={(e) => setGmId(e.target.value)}
                   aria-label="General Manager to send to"
-                  className="h-7 px-2 pr-7 rounded-control border border-line bg-surface text-micro text-ink cursor-pointer"
+                  disabled={gms.length === 0}
+                  className="h-7 px-2 pr-7 rounded-control border border-line bg-surface text-micro text-ink cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {gms.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.fullName || g.email}
-                    </option>
-                  ))}
+                  {gms.length === 0 ? (
+                    <option value="">No General Manager available</option>
+                  ) : (
+                    gms.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.fullName || g.email}
+                      </option>
+                    ))
+                  )}
                 </select>
-              )}
+              </label>
               <button
                 onClick={() => sendSlips([...selected])}
-                disabled={selected.size === 0 || sendingId !== null}
+                disabled={selected.size === 0 || sendingId !== null || !gmId}
                 className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-indigo-600/30 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 {sendingId === 'bulk' ? (

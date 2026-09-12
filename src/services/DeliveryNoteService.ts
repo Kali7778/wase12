@@ -349,6 +349,31 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
     return this.withLines(data);
   }
 
+  /**
+   * Notes that exist but are not out for delivery yet.
+   *
+   * The keeper cannot count these — the database refuses an arrival for any
+   * note that has not been handed to a driver, so that stock can only ever
+   * appear through the approved chain. They are listed anyway because the
+   * alternative is worse: a slip uploaded this morning and still sitting
+   * with the GM was simply absent from this screen, which reads as "the
+   * upload never arrived" rather than "it is waiting on somebody". Showing
+   * where a note is stuck is the whole point.
+   *
+   * `rejected` is left out on purpose — a rejected note is not coming.
+   */
+  async listNotYetDispatched(limit = 100): Promise<DeliveryNoteWithLines[]> {
+    const { data, error } = await supabase
+      .from('delivery_notes')
+      .select('*, delivery_note_lines(*)')
+      .in('workflow_status', ['draft', 'sent_to_gm', 'gm_approved'])
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw toAppError(error, 'Loading delivery notes on their way');
+    return this.withLines(data);
+  }
+
   /** Notes already counted, newest first — the keeper's own recent work. */
   async listReceived(limit = 30): Promise<DeliveryNoteWithLines[]> {
     const { data, error } = await supabase

@@ -79,8 +79,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
           id: 'adminSlips',
           label: 'Delivery Slips',
           icon: FileStack,
-          // The intake screen belongs to whoever receives slips from the supplier.
-          roles: ['manager', 'admin', 'dispatcher'],
+          // The intake screen belongs to whoever receives slips from the
+          // supplier. The GM is on this list too: slips arrive by email and
+          // whoever opens that inbox first should be able to file them
+          // rather than wait for the admin to be at a desk.
+          roles: ['manager', 'admin', 'dispatcher', 'gm'],
         },
         { id: 'slipReview', label: 'Slip Review', icon: ClipboardCheck, roles: ['ceo', 'gm'] },
         { id: 'myDeliveries', label: 'My Deliveries', icon: Truck, roles: ['driver'] },

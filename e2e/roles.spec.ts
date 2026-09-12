@@ -88,13 +88,15 @@ test.describe('navigation is filtered by role', () => {
     expect(labels).not.toContain('Stock Out');
   });
 
-  test('GM reviews and can receive, but does not upload', async ({ page }) => {
+  test('GM uploads, reviews and can receive', async ({ page }) => {
     await signIn(page, 'gm');
     const labels = await navLabels(page);
 
     expect(labels).toContain('Slip Review');
     expect(labels).toContain('Receiving');
-    expect(labels).not.toContain('Delivery Slips');
+    // Slips arrive by email; the GM files them when the admin is not at a
+    // desk. The database has always allowed this — only the menu did not.
+    expect(labels).toContain('Delivery Slips');
   });
 
   test('warehouse keeper only counts', async ({ page }) => {

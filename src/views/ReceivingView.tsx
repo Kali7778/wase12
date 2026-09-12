@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   Camera,
   Check,
+  Clock,
   FileStack,
   Loader2,
   PackageCheck,
@@ -26,6 +27,8 @@ import {
   DISCREPANCY_LABEL,
   OVERAGE_REASONS,
   SHORTAGE_REASONS,
+  WORKFLOW_LABEL,
+  WORKFLOW_TONE,
 } from '../models/deliveryNote';
 import type { Warehouse } from '../models/masterData';
 
@@ -41,6 +44,7 @@ import type { Warehouse } from '../models/masterData';
  */
 export const ReceivingView: React.FC = () => {
   const [queue, setQueue] = useState<DeliveryNoteWithLines[]>([]);
+  const [upstream, setUpstream] = useState<DeliveryNoteWithLines[]>([]);
   const [recent, setRecent] = useState<DeliveryNoteWithLines[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,12 +56,14 @@ export const ReceivingView: React.FC = () => {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [pending, done, houses] = await Promise.all([
+      const [pending, coming, done, houses] = await Promise.all([
         deliveryNoteService.listReceivingQueue(),
+        deliveryNoteService.listNotYetDispatched(),
         deliveryNoteService.listReceived(),
         warehouseService.list(),
       ]);
       setQueue(pending);
+      setUpstream(coming);
       setRecent(done);
       setWarehouses(houses.filter((w) => w.isActive));
       setError(null);
@@ -87,21 +93,48 @@ export const ReceivingView: React.FC = () => {
   );
 
   /*
+   * Uploaded, but nobody has handed it to a driver yet. These cannot be
+   * counted — the database says so — and they are listed so that a note
+   * waiting on the office looks like a note waiting on the office, instead
+   * of looking like an upload that never happened.
+   */
+  const comingLines = useMemo(
+    () =>
+      upstream.flatMap((slip) =>
+        slip.lines.filter((line) => line.receivedAt === null).map((line) => ({ slip, line })),
+      ),
+    [upstream],
+  );
+
+  /*
    * The driver arrives holding a paper slip, and the number printed on it is
    * the only thing the keeper has to go on. Scrolling a queue to find it works
    * while the queue is short and stops working on a busy morning.
+   *
+   * The search runs over both lists. Someone typing a number wants to know
+   * where that note is, and "not here" is only a useful answer when the
+   * screen can also say where it actually is.
    */
-  const visibleLines = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (!term) return openLines;
-    return openLines.filter(
-      ({ slip, line }) =>
-        slip.dnNumber.toLowerCase().includes(term) ||
-        slip.soNumber.toLowerCase().includes(term) ||
-        line.itemNumber.toLowerCase().includes(term) ||
-        line.itemDescription.toLowerCase().includes(term),
-    );
-  }, [openLines, query]);
+  const matches = useCallback(
+    ({ slip, line }: { slip: DeliveryNoteWithLines; line: DeliveryNoteLine }, term: string) =>
+      slip.dnNumber.toLowerCase().includes(term) ||
+      slip.soNumber.toLowerCase().includes(term) ||
+      line.itemNumber.toLowerCase().includes(term) ||
+      line.itemDescription.toLowerCase().includes(term),
+    [],
+  );
+
+  const term = query.trim().toLowerCase();
+
+  const visibleLines = useMemo(
+    () => (term ? openLines.filter((entry) => matches(entry, term)) : openLines),
+    [openLines, matches, term],
+  );
+
+  const visibleComing = useMemo(
+    () => (term ? comingLines.filter((entry) => matches(entry, term)) : comingLines),
+    [comingLines, matches, term],
+  );
 
   return (
     <div className="space-y-5">
@@ -110,7 +143,8 @@ export const ReceivingView: React.FC = () => {
         description="Count what came off the truck and confirm it. Stock is created here and nowhere else."
         stats={[
           { label: 'awaiting count', value: openLines.length },
-          ...(query.trim() ? [{ label: 'matching', value: visibleLines.length }] : []),
+          { label: 'not with a driver yet', value: comingLines.length },
+          ...(term ? [{ label: 'matching', value: visibleLines.length + visibleComing.length }] : []),
         ]}
         actions={
           <Button icon={RefreshCw} size="sm" onClick={refresh} loading={loading}>
@@ -152,7 +186,9 @@ export const ReceivingView: React.FC = () => {
             title={openLines.length === 0 ? 'Nothing to receive' : 'No delivery note matches that'}
             description={
               openLines.length === 0
-                ? 'Delivery notes appear here once the General Manager hands them to a driver.'
+                ? comingLines.length > 0
+                  ? 'Nothing is out for delivery right now. The notes below have been uploaded but are still waiting on the office.'
+                  : 'Delivery notes appear here once the General Manager hands them to a driver.'
                 : 'Check the number on the slip the driver handed over, or clear the search to see the whole queue.'
             }
           />
@@ -180,6 +216,44 @@ export const ReceivingView: React.FC = () => {
           </ul>
         )}
       </Panel>
+
+      {visibleComing.length > 0 && (
+        <Panel
+          title="On the way"
+          description="Uploaded, but not handed to a driver yet. These cannot be counted until they are."
+          flush
+        >
+          <ul className="divide-line">
+            {visibleComing.map(({ slip, line }) => (
+              <li key={line.id} className="px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <span className="w-9 h-9 rounded-control bg-sunken border border-line flex items-center justify-center shrink-0">
+                  <Clock className="w-4 h-4 text-ink-faint" />
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-tiny font-semibold text-ink" data-numeric>
+                    DN {slip.dnNumber}
+                  </p>
+                  <p className="text-micro text-ink-faint truncate">{line.itemDescription}</p>
+                </div>
+
+                <div className="text-right shrink-0 sm:px-4">
+                  <p className="text-micro text-ink-faint">Note</p>
+                  <p className="text-tiny text-ink-soft" data-numeric>
+                    {line.pdfQty} {line.uom}
+                  </p>
+                </div>
+
+                <div className="shrink-0 sm:w-44 sm:text-right">
+                  <Badge tone={WORKFLOW_TONE[slip.workflowStatus]}>
+                    {WORKFLOW_LABEL[slip.workflowStatus]}
+                  </Badge>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
 
       {recent.length > 0 && (
         <Panel title="Recently received" flush>
