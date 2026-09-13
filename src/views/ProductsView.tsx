@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Boxes, Check, Loader2, RefreshCw, Search, Sparkles, X } from 'lucide-react';
+import { Boxes, Check, Loader2, Plus, RefreshCw, Search, Sparkles, X } from 'lucide-react';
 import { EmptyState, PageHeader, Panel } from '../components/ui/Panel';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Field, Input } from '../components/ui/Field';
+import { AddProductForm } from '../components/products/AddProductForm';
 import { itemService } from '../services/MasterDataService';
 import { useAuth } from '../context/AuthContext';
 import type { Item } from '../models/masterData';
@@ -11,11 +12,11 @@ import type { Item } from '../models/masterData';
 /**
  * The product master.
  *
- * Products are not typed in here — they arrive with the delivery notes. Every
+ * Most products are not typed in — they arrive with the delivery notes. Every
  * note carries an item number, a description and a unit, and a product the
- * system has not seen before is recorded the first time one turns up. An item
- * number is unique, so the same product arriving on a hundred notes is still
- * one record.
+ * system has not seen before is recorded the first time one turns up. A
+ * product can also be added by hand, ahead of its first slip. Either way the
+ * item number is unique, so the same product is always one record.
  *
  * What this screen is for is the other half of that: checking them. The parser
  * is reliable but not perfect, and a product invented by a bad parse should be
@@ -28,6 +29,7 @@ export const ProductsView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -61,8 +63,14 @@ export const ProductsView: React.FC = () => {
 
   const unverified = items.filter((i) => i.isAutoAdded).length;
 
+  const existingNumbers = useMemo(
+    () => new Set(items.map((i) => i.itemNumber.trim().toLowerCase())),
+    [items],
+  );
+
   const onSaved = async (message: string) => {
     setEditing(null);
+    setAdding(false);
     setNotice(message);
     await refresh();
   };
@@ -71,15 +79,32 @@ export const ProductsView: React.FC = () => {
     <div className="space-y-5">
       <PageHeader
         title="Products"
-        description="Recorded automatically from the delivery notes. Check the new ones and correct anything the PDF got wrong."
+        description="Recorded automatically from the delivery notes, or added by hand. Check the new ones and correct anything the PDF got wrong."
         stats={[
           { label: 'products', value: items.length },
           { label: 'needing a check', value: unverified },
         ]}
         actions={
-          <Button icon={RefreshCw} size="sm" onClick={refresh} loading={loading}>
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button icon={RefreshCw} size="sm" onClick={refresh} loading={loading}>
+              Refresh
+            </Button>
+            {canEdit && (
+              <Button
+                icon={Plus}
+                size="sm"
+                variant="primary"
+                disabled={adding}
+                onClick={() => {
+                  setAdding(true);
+                  setEditing(null);
+                  setNotice(null);
+                }}
+              >
+                Add product
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -105,6 +130,14 @@ export const ProductsView: React.FC = () => {
         </div>
       )}
 
+      {adding && (
+        <AddProductForm
+          existingNumbers={existingNumbers}
+          onCancel={() => setAdding(false)}
+          onSaved={onSaved}
+        />
+      )}
+
       <div className="relative max-w-sm">
         <Search className="w-3.5 h-3.5 text-ink-faint absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         <Input
@@ -127,7 +160,7 @@ export const ProductsView: React.FC = () => {
             title={items.length === 0 ? 'No products yet' : 'Nothing matches that search'}
             description={
               items.length === 0
-                ? 'Products are recorded automatically the first time they appear on an uploaded delivery note.'
+                ? 'Products are recorded automatically the first time they appear on an uploaded delivery note, or you can add one by hand.'
                 : 'Try another item number or description.'
             }
           />

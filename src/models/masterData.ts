@@ -63,3 +63,17 @@ export interface RoleFlags {
   isDriver?: boolean;
   isWarehouse?: boolean;
 }
+
+/**
+ * What a person types to add a product by hand.
+ *
+ * Only these five come from the form; everything else on `Item` is set by
+ * the database. More attributes will join this as the client asks for them.
+ */
+export interface NewItem {
+  itemNumber: string;
+  descriptionEn: string;
+  descriptionAr: string | null;
+  uom: string;
+  unitWeightKg: number | null;
+}

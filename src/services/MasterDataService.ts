@@ -1,6 +1,6 @@
 import { BaseService } from './BaseService';
-import type { AppUser, Item, RoleFlags, Supplier, Warehouse } from '../models/masterData';
-import { toAppError } from '../lib/errors';
+import type { AppUser, Item, NewItem, RoleFlags, Supplier, Warehouse } from '../models/masterData';
+import { BusinessRuleError, toAppError } from '../lib/errors';
 import type { Tables } from '../types/database';
 
 /**
@@ -36,6 +36,16 @@ class SupplierServiceImpl extends BaseService<Tables<'suppliers'>, Supplier> {
     return matches[0] ?? null;
   }
 }
+
+/**
+ * Units are compared as text, so "bag", "Bag" and "BAG" would otherwise be
+ * three different units for the same product. The delivery notes print them
+ * in capitals; everything typed by hand follows that.
+ */
+const normaliseUom = (uom: string) => uom.trim().toUpperCase();
+
+/** Postgres unique_violation. */
+const UNIQUE_VIOLATION = '23505';
 
 class ItemServiceImpl extends BaseService<Tables<'items'>, Item> {
   constructor() {
@@ -86,6 +96,45 @@ class ItemServiceImpl extends BaseService<Tables<'items'>, Item> {
   }
 
   /**
+   * Adds a product by hand.
+   *
+   * A product a person typed in is verified by definition, so it is not
+   * flagged the way one recorded from a delivery note is. When the same item
+   * number later arrives on a slip, the upload finds this record and uses it;
+   * it never creates a second one and never overwrites this one.
+   *
+   * The item number is unique in the database. That constraint, not any
+   * check in the browser, is what stops a duplicate.
+   */
+  async create(input: NewItem): Promise<Item> {
+    const itemNumber = input.itemNumber.trim();
+
+    const { data, error } = await this.db
+      .from('items')
+      .insert({
+        item_number: itemNumber,
+        description_en: input.descriptionEn.trim(),
+        description_ar: input.descriptionAr?.trim() || null,
+        uom: normaliseUom(input.uom),
+        unit_weight_kg: input.unitWeightKg,
+        is_auto_added: false,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === UNIQUE_VIOLATION) {
+        throw new BusinessRuleError(
+          `A product with item number ${itemNumber} already exists.`,
+          error,
+        );
+      }
+      throw toAppError(error, 'Adding the product');
+    }
+    return this.toModel(data as Tables<'items'>);
+  }
+
+  /**
    * Corrects a product.
    *
    * Saving is what marks it verified: a person has now looked at it, so it
@@ -100,7 +149,7 @@ class ItemServiceImpl extends BaseService<Tables<'items'>, Item> {
       .from('items')
       .update({
         description_en: changes.descriptionEn.trim(),
-        uom: changes.uom.trim(),
+        uom: normaliseUom(changes.uom),
         unit_weight_kg: changes.unitWeightKg,
         is_auto_added: false,
       })
