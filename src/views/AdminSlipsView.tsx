@@ -20,7 +20,10 @@ const today = () => new Date().toISOString().slice(0, 10);
  */
 export const AdminSlipsView: React.FC = () => {
   const { can } = useAuth();
-  const staging = useSlipStaging();
+  // Decision D35: a repeated sales order needs an admin. The database says
+  // the same thing; this only decides what the card offers.
+  const canOverrideSo = can('admin', 'ceo');
+  const staging = useSlipStaging({ canOverrideSo });
 
   const [batchDate, setBatchDate] = useState(today());
   const [saved, setSaved] = useState<DeliveryNoteWithLines[]>([]);
@@ -217,6 +220,9 @@ export const AdminSlipsView: React.FC = () => {
                 {staging.duplicateCount > 0 && (
                   <Stat label="duplicate" value={staging.duplicateCount} tone="amber" />
                 )}
+                {staging.soConflictCount > 0 && (
+                  <Stat label="sales order in use" value={staging.soConflictCount} tone="amber" />
+                )}
               </div>
               <button
                 onClick={handleSave}
@@ -244,7 +250,9 @@ export const AdminSlipsView: React.FC = () => {
                 <StagedSlipCard
                   key={slip.key}
                   slip={slip}
+                  canOverrideSo={canOverrideSo}
                   onEdit={staging.editField}
+                  onSoReason={staging.setSoOverrideReason}
                   onRemove={staging.remove}
                 />
               ))}

@@ -136,15 +136,22 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
    * before. The same slip WILL be re-uploaded eventually; without this the
    * stock would be counted twice.
    */
-  async findDuplicates(sha256: string[], dnNumbers: string[]): Promise<DuplicateMatch[]> {
+  async findDuplicates(
+    sha256: string[],
+    dnNumbers: string[],
+    soNumbers: string[] = [],
+  ): Promise<DuplicateMatch[]> {
     const { data, error } = await this.db.rpc('check_dn_duplicates', {
       p_sha256: sha256.length ? sha256 : null,
       p_dn_numbers: dnNumbers.length ? dnNumbers : null,
+      p_so_numbers: soNumbers.length ? soNumbers : undefined,
     });
 
     if (error) throw toAppError(error, 'Checking for duplicates');
     return (data ?? []).map((row) => ({
+      matchedOn: row.matched_on as DuplicateMatch['matchedOn'],
       dnNumber: row.dn_number,
+      soNumber: row.so_number,
       pdfSha256: row.pdf_sha256,
       uploadedAt: row.uploaded_at,
       workflowStatus: row.workflow_status,
@@ -178,7 +185,14 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
   /** Header and line are written together by the database function. */
   async create(
     input: NewDeliveryNote,
-    options: { batchId?: string; pdfPath?: string; pdfFileName?: string; pdfSha256?: string },
+    options: {
+      batchId?: string;
+      pdfPath?: string;
+      pdfFileName?: string;
+      pdfSha256?: string;
+      /** Only when an admin accepts a sales order number already in use. */
+      soOverrideReason?: string;
+    },
   ): Promise<DeliveryNote> {
     const { data, error } = await this.db.rpc('create_delivery_note', {
       p_dn_number: input.dnNumber,
@@ -199,11 +213,13 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
       p_batch_id: options.batchId ?? null,
       p_pdf_path: options.pdfPath ?? null,
       p_pdf_file_name: options.pdfFileName ?? null,
-      p_pdf_sha256: options.pdfSha256 ?? null,
+      // An empty hash (the file could not be read) is no hash at all.
+      p_pdf_sha256: options.pdfSha256 || null,
       p_file_type: input.fileType ?? 'pdf',
       p_extraction: input.extractionMethod ?? 'pdf_text',
       p_confidence: input.confidence ?? null,
       p_needs_review: input.needsReview ?? [],
+      p_so_override_reason: options.soOverrideReason?.trim() || undefined,
     });
 
     if (error) throw toAppError(error, 'Saving the delivery note');

@@ -93,8 +93,19 @@ export interface DeliveryNoteWithLines extends DeliveryNote {
 }
 
 /** A previously uploaded slip that matches a file about to be uploaded. */
+/**
+ * What an earlier upload has in common with a slip about to be saved.
+ *
+ * `file` and `dn_number` can never be saved again. `so_number` can: a
+ * supplier may split one order across deliveries, so an admin may accept it
+ * with a reason (decision D35). The database enforces both.
+ */
+export type DuplicateKind = 'file' | 'dn_number' | 'so_number';
+
 export interface DuplicateMatch {
+  matchedOn: DuplicateKind;
   dnNumber: string;
+  soNumber: string;
   pdfSha256: string | null;
   uploadedAt: string;
   workflowStatus: DnWorkflowStatus;

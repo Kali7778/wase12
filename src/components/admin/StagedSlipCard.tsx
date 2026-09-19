@@ -13,7 +13,10 @@ import { FIELD_LABEL, type ExtractedDn } from '../../utils/dnParser';
 
 interface StagedSlipCardProps {
   slip: StagedSlip;
+  /** Admin or superadmin: may accept a sales order number already in use. */
+  canOverrideSo: boolean;
   onEdit: (key: string, field: keyof ExtractedDn, value: string) => void;
+  onSoReason: (key: string, reason: string) => void;
   onRemove: (key: string) => void;
 }
 
@@ -33,15 +36,24 @@ const CARD_FIELDS: Array<{ field: keyof ExtractedDn; wide?: boolean }> = [
   { field: 'shipFrom', wide: true },
 ];
 
-export const StagedSlipCard: React.FC<StagedSlipCardProps> = ({ slip, onEdit, onRemove }) => {
-  const { data, status, duplicate } = slip;
+export const StagedSlipCard: React.FC<StagedSlipCardProps> = ({
+  slip,
+  canOverrideSo,
+  onEdit,
+  onSoReason,
+  onRemove,
+}) => {
+  const { data, status, duplicate, soConflict } = slip;
   const needsReview = data.needsReview.length > 0;
-  const blocked = Boolean(duplicate) || needsReview;
+  const soUnresolved =
+    Boolean(soConflict) && !duplicate && !(canOverrideSo && slip.soOverrideReason.trim() !== '');
+  const blocked = Boolean(duplicate) || needsReview || soUnresolved;
+  const editable = status !== 'saving' && status !== 'saved';
 
   return (
     <div
       className={`rounded-2xl border bg-white dark:bg-slate-900 shadow-sm overflow-hidden flex flex-col ${
-        duplicate
+        duplicate || soUnresolved
           ? 'border-amber-300 dark:border-amber-800'
           : status === 'error'
             ? 'border-red-300 dark:border-red-800'
@@ -91,6 +103,33 @@ export const StagedSlipCard: React.FC<StagedSlipCardProps> = ({ slip, onEdit, on
           </Notice>
         )}
 
+        {soConflict && !duplicate && (
+          <Notice tone="amber" icon={<AlertTriangle className="w-3.5 h-3.5" />}>
+            Sales order <strong>{soConflict.soNumber}</strong> is already on delivery note{' '}
+            <strong>{soConflict.dnNumber}</strong>, uploaded{' '}
+            {new Date(soConflict.uploadedAt).toLocaleDateString()}.{' '}
+            {canOverrideSo
+              ? 'If the supplier split this order across deliveries, give the reason below to save it.'
+              : 'Only an admin can save a slip with a sales order number that is already in use.'}
+          </Notice>
+        )}
+
+        {soConflict && !duplicate && canOverrideSo && (
+          <label className="block">
+            <span className="block text-[10px] font-semibold uppercase tracking-wide mb-0.5 text-amber-700 dark:text-amber-400">
+              Reason for accepting this sales order *
+            </span>
+            <textarea
+              value={slip.soOverrideReason}
+              disabled={!editable}
+              onChange={(e) => onSoReason(slip.key, e.target.value)}
+              rows={2}
+              placeholder="For example: the supplier delivered this order in two trucks"
+              className="w-full px-2 py-1 rounded-lg border border-amber-300 dark:border-amber-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </label>
+        )}
+
         {needsReview && !duplicate && (
           <Notice tone="orange" icon={<AlertTriangle className="w-3.5 h-3.5" />}>
             Could not read: {data.needsReview.map((f) => FIELD_LABEL[f] ?? f).join(', ')}. Fill these in
@@ -120,7 +159,7 @@ export const StagedSlipCard: React.FC<StagedSlipCardProps> = ({ slip, onEdit, on
                 </span>
                 <input
                   value={String(value)}
-                  disabled={status === 'saving' || status === 'saved'}
+                  disabled={!editable}
                   onChange={(e) => onEdit(slip.key, field, e.target.value)}
                   className={`w-full px-2 py-1 rounded-lg border text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                     invalid

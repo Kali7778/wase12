@@ -26,6 +26,15 @@ function loadEnvLocal(): void {
 
 loadEnvLocal();
 
+/*
+ * One address for both the browser and the server check. They used to be set
+ * separately, with the server check fixed to port 3000: when another project's
+ * dev server held that port, Playwright "reused" it, waited on a page that
+ * never answered, and the suite hung. Set E2E_BASE_URL to run on another port.
+ */
+const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
+const PORT = new URL(BASE_URL).port || '3000';
+
 /**
  * End-to-end tests against a real browser and the real Supabase project.
  *
@@ -51,7 +60,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
 
   use: {
-    baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:3000',
+    baseURL: BASE_URL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     locale: 'en-GB',
@@ -82,8 +91,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    command: `npx vite --port=${PORT} --strictPort --host=0.0.0.0`,
+    url: BASE_URL,
     reuseExistingServer: true,
     timeout: 60_000,
   },

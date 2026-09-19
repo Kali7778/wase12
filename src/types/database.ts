@@ -159,6 +159,9 @@ export type Database = {
           ship_to: string | null
           shipping_reference: string | null
           so_number: string
+          so_override_at: string | null
+          so_override_by: string | null
+          so_override_reason: string | null
           source_file_type: string | null
           stamped_pdf_path: string | null
           status: Database["public"]["Enums"]["dn_status"]
@@ -197,6 +200,9 @@ export type Database = {
           ship_to?: string | null
           shipping_reference?: string | null
           so_number: string
+          so_override_at?: string | null
+          so_override_by?: string | null
+          so_override_reason?: string | null
           source_file_type?: string | null
           stamped_pdf_path?: string | null
           status?: Database["public"]["Enums"]["dn_status"]
@@ -235,6 +241,9 @@ export type Database = {
           ship_to?: string | null
           shipping_reference?: string | null
           so_number?: string
+          so_override_at?: string | null
+          so_override_by?: string | null
+          so_override_reason?: string | null
           source_file_type?: string | null
           stamped_pdf_path?: string | null
           status?: Database["public"]["Enums"]["dn_status"]
@@ -275,6 +284,13 @@ export type Database = {
           {
             foreignKeyName: "delivery_notes_sent_by_fkey"
             columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_so_override_by_fkey"
+            columns: ["so_override_by"]
             isOneToOne: false
             referencedRelation: "user_tbl"
             referencedColumns: ["id"]
@@ -738,10 +754,12 @@ export type Database = {
     }
     Functions: {
       check_dn_duplicates: {
-        Args: { p_dn_numbers: string[]; p_sha256: string[] }
+        Args: { p_dn_numbers: string[]; p_sha256: string[]; p_so_numbers?: string[] }
         Returns: {
           dn_number: string
+          matched_on: string
           pdf_sha256: string
+          so_number: string
           uploaded_at: string
           workflow_status: Database["public"]["Enums"]["dn_workflow_status"]
         }[]
@@ -783,6 +801,7 @@ export type Database = {
           p_ship_to?: string
           p_shipping_ref?: string
           p_so_number: string
+          p_so_override_reason?: string
           p_supplier_code: string
           p_uom: string
         }
@@ -816,6 +835,9 @@ export type Database = {
           ship_to: string | null
           shipping_reference: string | null
           so_number: string
+          so_override_at: string | null
+          so_override_by: string | null
+          so_override_reason: string | null
           source_file_type: string | null
           stamped_pdf_path: string | null
           status: Database["public"]["Enums"]["dn_status"]
@@ -863,6 +885,9 @@ export type Database = {
           ship_to: string | null
           shipping_reference: string | null
           so_number: string
+          so_override_at: string | null
+          so_override_by: string | null
+          so_override_reason: string | null
           source_file_type: string | null
           stamped_pdf_path: string | null
           status: Database["public"]["Enums"]["dn_status"]
@@ -1017,6 +1042,9 @@ export type Database = {
           ship_to: string | null
           shipping_reference: string | null
           so_number: string
+          so_override_at: string | null
+          so_override_by: string | null
+          so_override_reason: string | null
           source_file_type: string | null
           stamped_pdf_path: string | null
           status: Database["public"]["Enums"]["dn_status"]
