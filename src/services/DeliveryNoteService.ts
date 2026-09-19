@@ -2,6 +2,7 @@ import { BaseService } from './BaseService';
 import { DELIVERY_NOTES_BUCKET, supabase } from '../lib/supabase';
 import { toAppError } from '../lib/errors';
 import type {
+  CustodyEntry,
   DeliveryNote,
   DeliveryNoteLine,
   DeliveryNoteWithLines,
@@ -104,6 +105,10 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
       assignedTo: row.assigned_to,
       sentAt: row.sent_at,
       sentBy: row.sent_by,
+      holderId: row.holder_id,
+      holderRole: row.holder_role,
+      holderSince: row.holder_since,
+      acknowledgedAt: row.acknowledged_at,
       assignedDriverId: row.assigned_driver_id,
       driverSentAt: row.driver_sent_at,
       driverSentBy: row.driver_sent_by,
@@ -281,10 +286,17 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
   }
 
   /** People a slip can be handed to. */
-  async listRecipients(kind: 'gm' | 'driver'): Promise<Recipient[]> {
+  async listRecipients(
+    kind: 'gm' | 'driver' | 'warehouse' | 'holder',
+  ): Promise<Recipient[]> {
     const { data, error } = await this.db.rpc('list_recipients', { p_kind: kind });
     if (error) throw toAppError(error, 'Loading recipients');
-    return (data ?? []).map((r) => ({ id: r.id, fullName: r.full_name, email: r.email }));
+    return (data ?? []).map((r) => ({
+      id: r.id,
+      fullName: r.full_name,
+      email: r.email,
+      role: r.role,
+    }));
   }
 
   /** Handover history for one slip, newest first. */
@@ -312,26 +324,93 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
   }
 
   /**
-   * Hands an approved slip to a driver.
+   * Hands a slip to the GM, the warehouse or a driver.
    *
    * The supplier's delivery note travels exactly as it arrived — nothing is
-   * written on it and no copy is made. Who approved the handover and who is
-   * carrying it is our record, not the supplier's, and it belongs on our own
-   * document rather than on their paper.
+   * written on it and no copy is made. Who handed it on and who is carrying
+   * it is our record, not the supplier's.
+   *
+   * Every rule about who may hand what to whom lives in the database, so a
+   * screen that offers the wrong choice is refused rather than obeyed.
    */
-  async handToDriver(input: {
-    slip: DeliveryNote;
-    driverId: string;
+  async handOver(input: {
+    slipId: string;
+    toUserId: string;
     note?: string;
   }): Promise<DeliveryNote> {
-    const { data, error } = await this.db.rpc('send_dn_to_driver', {
-      p_dn_id: input.slip.id,
-      p_driver_id: input.driverId,
+    const { data, error } = await this.db.rpc('hand_over_delivery_note', {
+      p_dn_id: input.slipId,
+      p_to_user: input.toUserId,
       p_note: input.note ?? null,
     });
 
-    if (error) throw toAppError(error, 'Handing the slip to the driver');
+    if (error) throw toAppError(error, 'Handing the slip over');
     return this.toModel(data as Tables<'delivery_notes'>);
+  }
+
+  /**
+   * The driver confirms the slip reached them (D38).
+   *
+   * Without this the record only ever says a slip was sent, which settles
+   * nothing when a driver says they never received it.
+   */
+  async acknowledge(slipId: string): Promise<DeliveryNote> {
+    const { data, error } = await this.db.rpc('acknowledge_delivery_note', { p_dn_id: slipId });
+
+    if (error) throw toAppError(error, 'Confirming the slip');
+    return this.toModel(data as Tables<'delivery_notes'>);
+  }
+
+  /** Slips in one person's hands right now, whatever stage they are at. */
+  async listHeldBy(userId: string, limit = 100): Promise<DeliveryNoteWithLines[]> {
+    const { data, error } = await supabase
+      .from('delivery_notes')
+      .select('*, delivery_note_lines(*)')
+      .eq('holder_id', userId)
+      .order('holder_since', { ascending: false })
+      .limit(limit);
+
+    if (error) throw toAppError(error, 'Loading the slips in your hands');
+    return this.withLines(data);
+  }
+
+  /**
+   * The custody trail: who gave what to whom, newest first.
+   *
+   * Read from a view so the screen does not join four tables itself. Pass a
+   * delivery note number to follow a single slip.
+   */
+  async listCustody(options: { dnNumber?: string; limit?: number } = {}): Promise<CustodyEntry[]> {
+    let query = supabase
+      .from('v_slip_custody')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(options.limit ?? 100);
+
+    const term = options.dnNumber?.trim();
+    if (term) query = query.ilike('dn_number', `%${term}%`);
+
+    const { data, error } = await query;
+    if (error) throw toAppError(error, 'Loading the handover history');
+
+    return (data ?? []).map((row) => ({
+      id: row.id as string,
+      createdAt: row.created_at as string,
+      deliveryNoteId: row.delivery_note_id as string,
+      dnNumber: row.dn_number as string,
+      soNumber: row.so_number as string,
+      action: row.action as CustodyEntry['action'],
+      note: row.note,
+      actorId: row.actor_id,
+      actorName: row.actor_name,
+      actorRole: row.actor_role,
+      fromId: row.from_id,
+      fromName: row.from_name,
+      fromRole: row.from_role,
+      toId: row.to_id,
+      toName: row.to_name,
+      toRole: row.to_role,
+    }));
   }
 
   /** Slips currently assigned to the signed-in driver. */

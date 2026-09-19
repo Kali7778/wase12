@@ -21,6 +21,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       delivery_note_lines: {
@@ -130,6 +155,7 @@ export type Database = {
       }
       delivery_notes: {
         Row: {
+          acknowledged_at: string | null
           arrived_at: string | null
           assigned_driver_id: string | null
           assigned_to: string | null
@@ -144,6 +170,9 @@ export type Database = {
           extraction_method:
             | Database["public"]["Enums"]["extraction_method"]
             | null
+          holder_id: string | null
+          holder_role: Database["public"]["Enums"]["user_role"] | null
+          holder_since: string | null
           id: string
           needs_review_fields: string[]
           notes: string | null
@@ -171,6 +200,7 @@ export type Database = {
           workflow_status: Database["public"]["Enums"]["dn_workflow_status"]
         }
         Insert: {
+          acknowledged_at?: string | null
           arrived_at?: string | null
           assigned_driver_id?: string | null
           assigned_to?: string | null
@@ -185,6 +215,9 @@ export type Database = {
           extraction_method?:
             | Database["public"]["Enums"]["extraction_method"]
             | null
+          holder_id?: string | null
+          holder_role?: Database["public"]["Enums"]["user_role"] | null
+          holder_since?: string | null
           id?: string
           needs_review_fields?: string[]
           notes?: string | null
@@ -212,6 +245,7 @@ export type Database = {
           workflow_status?: Database["public"]["Enums"]["dn_workflow_status"]
         }
         Update: {
+          acknowledged_at?: string | null
           arrived_at?: string | null
           assigned_driver_id?: string | null
           assigned_to?: string | null
@@ -226,6 +260,9 @@ export type Database = {
           extraction_method?:
             | Database["public"]["Enums"]["extraction_method"]
             | null
+          holder_id?: string | null
+          holder_role?: Database["public"]["Enums"]["user_role"] | null
+          holder_since?: string | null
           id?: string
           needs_review_fields?: string[]
           notes?: string | null
@@ -282,6 +319,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "delivery_notes_holder_id_fkey"
+            columns: ["holder_id"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "delivery_notes_sent_by_fkey"
             columns: ["sent_by"]
             isOneToOne: false
@@ -313,33 +357,42 @@ export type Database = {
       }
       dn_workflow_log: {
         Row: {
+          action: string
           actor: string | null
           assigned_to: string | null
           created_at: string
           delivery_note_id: string
           from_status: Database["public"]["Enums"]["dn_workflow_status"] | null
+          holder_from: string | null
           id: string
           note: string | null
+          to_role: Database["public"]["Enums"]["user_role"] | null
           to_status: Database["public"]["Enums"]["dn_workflow_status"]
         }
         Insert: {
+          action: string
           actor?: string | null
           assigned_to?: string | null
           created_at?: string
           delivery_note_id: string
           from_status?: Database["public"]["Enums"]["dn_workflow_status"] | null
+          holder_from?: string | null
           id?: string
           note?: string | null
+          to_role?: Database["public"]["Enums"]["user_role"] | null
           to_status: Database["public"]["Enums"]["dn_workflow_status"]
         }
         Update: {
+          action?: string
           actor?: string | null
           assigned_to?: string | null
           created_at?: string
           delivery_note_id?: string
           from_status?: Database["public"]["Enums"]["dn_workflow_status"] | null
+          holder_from?: string | null
           id?: string
           note?: string | null
+          to_role?: Database["public"]["Enums"]["user_role"] | null
           to_status?: Database["public"]["Enums"]["dn_workflow_status"]
         }
         Relationships: [
@@ -370,6 +423,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_inventory_dashboard"
             referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "dn_workflow_log_holder_from_fkey"
+            columns: ["holder_from"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -751,10 +811,133 @@ export type Database = {
           },
         ]
       }
+      v_slip_custody: {
+        Row: {
+          action: string | null
+          actor_id: string | null
+          actor_name: string | null
+          actor_role: Database["public"]["Enums"]["user_role"] | null
+          created_at: string | null
+          delivery_note_id: string | null
+          dn_number: string | null
+          from_id: string | null
+          from_name: string | null
+          from_role: Database["public"]["Enums"]["user_role"] | null
+          from_status: Database["public"]["Enums"]["dn_workflow_status"] | null
+          id: string | null
+          note: string | null
+          so_number: string | null
+          to_id: string | null
+          to_name: string | null
+          to_role: Database["public"]["Enums"]["user_role"] | null
+          to_status: Database["public"]["Enums"]["dn_workflow_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dn_workflow_log_actor_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dn_workflow_log_assigned_to_fkey"
+            columns: ["to_id"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dn_workflow_log_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dn_workflow_log_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_dashboard"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "dn_workflow_log_holder_from_fkey"
+            columns: ["from_id"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      _t_as: { Args: { p: string }; Returns: undefined }
+      _t_ok: { Args: { cond: boolean; label: string }; Returns: undefined }
+      _t_refused: {
+        Args: { fragment: string; label: string; sql: string }
+        Returns: undefined
+      }
+      acknowledge_delivery_note: {
+        Args: { p_dn_id: string }
+        Returns: {
+          acknowledged_at: string | null
+          arrived_at: string | null
+          assigned_driver_id: string | null
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          customer_name: string | null
+          customer_number: string | null
+          dn_number: string
+          driver_sent_at: string | null
+          driver_sent_by: string | null
+          extraction_confidence: number | null
+          extraction_method:
+            | Database["public"]["Enums"]["extraction_method"]
+            | null
+          holder_id: string | null
+          holder_role: Database["public"]["Enums"]["user_role"] | null
+          holder_since: string | null
+          id: string
+          needs_review_fields: string[]
+          notes: string | null
+          order_date: string | null
+          pdf_file_name: string | null
+          pdf_sha256: string | null
+          pdf_storage_path: string | null
+          print_date: string | null
+          salesman: string | null
+          sent_at: string | null
+          sent_by: string | null
+          ship_from: string | null
+          ship_to: string | null
+          shipping_reference: string | null
+          so_number: string
+          so_override_at: string | null
+          so_override_by: string | null
+          so_override_reason: string | null
+          source_file_type: string | null
+          stamped_pdf_path: string | null
+          status: Database["public"]["Enums"]["dn_status"]
+          supplier_id: string
+          updated_at: string
+          upload_batch_id: string | null
+          workflow_status: Database["public"]["Enums"]["dn_workflow_status"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "delivery_notes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       check_dn_duplicates: {
-        Args: { p_dn_numbers: string[]; p_sha256: string[]; p_so_numbers?: string[] }
+        Args: {
+          p_dn_numbers: string[]
+          p_sha256: string[]
+          p_so_numbers?: string[]
+        }
         Returns: {
           dn_number: string
           matched_on: string
@@ -806,6 +989,7 @@ export type Database = {
           p_uom: string
         }
         Returns: {
+          acknowledged_at: string | null
           arrived_at: string | null
           assigned_driver_id: string | null
           assigned_to: string | null
@@ -820,6 +1004,9 @@ export type Database = {
           extraction_method:
             | Database["public"]["Enums"]["extraction_method"]
             | null
+          holder_id: string | null
+          holder_role: Database["public"]["Enums"]["user_role"] | null
+          holder_since: string | null
           id: string
           needs_review_fields: string[]
           notes: string | null
@@ -856,6 +1043,7 @@ export type Database = {
       decide_dn: {
         Args: { p_approve: boolean; p_dn_id: string; p_note?: string }
         Returns: {
+          acknowledged_at: string | null
           arrived_at: string | null
           assigned_driver_id: string | null
           assigned_to: string | null
@@ -870,6 +1058,63 @@ export type Database = {
           extraction_method:
             | Database["public"]["Enums"]["extraction_method"]
             | null
+          holder_id: string | null
+          holder_role: Database["public"]["Enums"]["user_role"] | null
+          holder_since: string | null
+          id: string
+          needs_review_fields: string[]
+          notes: string | null
+          order_date: string | null
+          pdf_file_name: string | null
+          pdf_sha256: string | null
+          pdf_storage_path: string | null
+          print_date: string | null
+          salesman: string | null
+          sent_at: string | null
+          sent_by: string | null
+          ship_from: string | null
+          ship_to: string | null
+          shipping_reference: string | null
+          so_number: string
+          so_override_at: string | null
+          so_override_by: string | null
+          so_override_reason: string | null
+          source_file_type: string | null
+          stamped_pdf_path: string | null
+          status: Database["public"]["Enums"]["dn_status"]
+          supplier_id: string
+          updated_at: string
+          upload_batch_id: string | null
+          workflow_status: Database["public"]["Enums"]["dn_workflow_status"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "delivery_notes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      hand_over_delivery_note: {
+        Args: { p_dn_id: string; p_note?: string; p_to_user: string }
+        Returns: {
+          acknowledged_at: string | null
+          arrived_at: string | null
+          assigned_driver_id: string | null
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          customer_name: string | null
+          customer_number: string | null
+          dn_number: string
+          driver_sent_at: string | null
+          driver_sent_by: string | null
+          extraction_confidence: number | null
+          extraction_method:
+            | Database["public"]["Enums"]["extraction_method"]
+            | null
+          holder_id: string | null
+          holder_role: Database["public"]["Enums"]["user_role"] | null
+          holder_since: string | null
           id: string
           needs_review_fields: string[]
           notes: string | null
@@ -940,6 +1185,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          role: Database["public"]["Enums"]["user_role"]
         }[]
       }
       receive_delivery_note_line: {
@@ -1005,61 +1251,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      send_dn_to_driver: {
-        Args: {
-          p_dn_id: string
-          p_driver_id: string
-          p_note?: string
-          p_stamped_pdf_path?: string
-        }
-        Returns: {
-          arrived_at: string | null
-          assigned_driver_id: string | null
-          assigned_to: string | null
-          created_at: string
-          created_by: string | null
-          customer_name: string | null
-          customer_number: string | null
-          dn_number: string
-          driver_sent_at: string | null
-          driver_sent_by: string | null
-          extraction_confidence: number | null
-          extraction_method:
-            | Database["public"]["Enums"]["extraction_method"]
-            | null
-          id: string
-          needs_review_fields: string[]
-          notes: string | null
-          order_date: string | null
-          pdf_file_name: string | null
-          pdf_sha256: string | null
-          pdf_storage_path: string | null
-          print_date: string | null
-          salesman: string | null
-          sent_at: string | null
-          sent_by: string | null
-          ship_from: string | null
-          ship_to: string | null
-          shipping_reference: string | null
-          so_number: string
-          so_override_at: string | null
-          so_override_by: string | null
-          so_override_reason: string | null
-          source_file_type: string | null
-          stamped_pdf_path: string | null
-          status: Database["public"]["Enums"]["dn_status"]
-          supplier_id: string
-          updated_at: string
-          upload_batch_id: string | null
-          workflow_status: Database["public"]["Enums"]["dn_workflow_status"]
-        }
-        SetofOptions: {
-          from: "*"
-          to: "delivery_notes"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       send_dn_to_gm: {
         Args: { p_dn_ids: string[]; p_gm_id?: string; p_note?: string }
         Returns: number
@@ -1113,6 +1304,7 @@ export type Database = {
         | "draft"
         | "sent_to_gm"
         | "gm_approved"
+        | "with_warehouse"
         | "sent_to_driver"
         | "rejected"
         | "received"
@@ -1260,6 +1452,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       dn_discrepancy_reason: [
@@ -1275,6 +1470,7 @@ export const Constants = {
         "draft",
         "sent_to_gm",
         "gm_approved",
+        "with_warehouse",
         "sent_to_driver",
         "rejected",
         "received",
@@ -1303,3 +1499,4 @@ export const Constants = {
     },
   },
 } as const
+

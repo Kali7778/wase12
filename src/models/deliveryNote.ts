@@ -1,4 +1,4 @@
-import type { AuditedRecord, BaseRecord, DnStatus } from './base';
+import type { AuditedRecord, BaseRecord, DnStatus, UserRole } from './base';
 import type { Enums } from '../types/database';
 
 export type DnWorkflowStatus = Enums<'dn_workflow_status'>;
@@ -37,6 +37,16 @@ export interface DeliveryNote extends AuditedRecord {
   assignedTo: string | null;
   sentAt: string | null;
   sentBy: string | null;
+
+  /**
+   * Who is responsible for this slip right now (D30). One person at a time;
+   * NULL once the slip has been received or rejected.
+   */
+  holderId: string | null;
+  holderRole: UserRole | null;
+  holderSince: string | null;
+  /** When the driver confirmed the slip reached them (D38). */
+  acknowledgedAt: string | null;
 
   /** Driver the GM handed this slip to. */
   assignedDriverId: string | null;
@@ -115,6 +125,7 @@ export const WORKFLOW_LABEL: Record<DnWorkflowStatus, string> = {
   draft: 'Not sent',
   sent_to_gm: 'Sent to GM',
   gm_approved: 'Approved by GM',
+  with_warehouse: 'With warehouse',
   sent_to_driver: 'With driver',
   rejected: 'Rejected',
   received: 'Received',
@@ -128,6 +139,7 @@ export const WORKFLOW_TONE: Record<
   draft: 'neutral',
   sent_to_gm: 'accent',
   gm_approved: 'ok',
+  with_warehouse: 'accent',
   sent_to_driver: 'info',
   rejected: 'risk',
   received: 'ok',
@@ -202,4 +214,49 @@ export interface Recipient {
   id: string;
   fullName: string;
   email: string;
+  role: UserRole;
 }
+
+/** Who a slip may be handed to, and what that step is called on screen. */
+export const HANDOVER_TARGET_LABEL: Record<'gm' | 'warehouse' | 'driver', string> = {
+  gm: 'General Manager',
+  warehouse: 'Warehouse',
+  driver: 'Driver',
+};
+
+/** One step in a slip's custody, as `v_slip_custody` reports it. */
+export type CustodyAction =
+  | 'hand_over'
+  | 'reassign_driver'
+  | 'acknowledge'
+  | 'approve'
+  | 'reject'
+  | 'receive';
+
+export interface CustodyEntry {
+  id: string;
+  createdAt: string;
+  deliveryNoteId: string;
+  dnNumber: string;
+  soNumber: string;
+  action: CustodyAction;
+  note: string | null;
+  actorId: string | null;
+  actorName: string | null;
+  actorRole: UserRole | null;
+  fromId: string | null;
+  fromName: string | null;
+  fromRole: UserRole | null;
+  toId: string | null;
+  toName: string | null;
+  toRole: UserRole | null;
+}
+
+export const CUSTODY_ACTION_LABEL: Record<CustodyAction, string> = {
+  hand_over: 'Handed over',
+  reassign_driver: 'Driver changed',
+  acknowledge: 'Confirmed receipt',
+  approve: 'Approved',
+  reject: 'Rejected',
+  receive: 'Counted in',
+};

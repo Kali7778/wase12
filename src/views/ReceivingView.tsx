@@ -4,6 +4,7 @@ import {
   Camera,
   Check,
   Clock,
+  Hand,
   FileStack,
   Loader2,
   PackageCheck,
@@ -17,10 +18,12 @@ import { Badge } from '../components/ui/Badge';
 import { Field, Input, Select, Textarea } from '../components/ui/Field';
 import { deliveryNoteService } from '../services/DeliveryNoteService';
 import { warehouseService } from '../services/MasterDataService';
+import { useAuth } from '../context/AuthContext';
 import type {
   DeliveryNoteLine,
   DeliveryNoteWithLines,
   DiscrepancyReason,
+  Recipient,
 } from '../models/deliveryNote';
 import {
   DISCREPANCY_ACCOUNTABLE,
@@ -43,7 +46,15 @@ import type { Warehouse } from '../models/masterData';
  * This screen is the only way stock is ever created.
  */
 export const ReceivingView: React.FC = () => {
+  const { profile } = useAuth();
   const [queue, setQueue] = useState<DeliveryNoteWithLines[]>([]);
+  // Slips handed straight to this keeper. They cannot be counted yet: a
+  // driver has to carry the goods first (D29), so the only move from here
+  // is to hand the slip to one.
+  const [mine, setMine] = useState<DeliveryNoteWithLines[]>([]);
+  const [drivers, setDrivers] = useState<Recipient[]>([]);
+  const [driverFor, setDriverFor] = useState<Record<string, string>>({});
+  const [handingId, setHandingId] = useState<string | null>(null);
   const [upstream, setUpstream] = useState<DeliveryNoteWithLines[]>([]);
   const [recent, setRecent] = useState<DeliveryNoteWithLines[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -56,13 +67,15 @@ export const ReceivingView: React.FC = () => {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [pending, coming, done, houses] = await Promise.all([
+      const [pending, coming, done, houses, held] = await Promise.all([
         deliveryNoteService.listReceivingQueue(),
         deliveryNoteService.listNotYetDispatched(),
         deliveryNoteService.listReceived(),
         warehouseService.list(),
+        profile ? deliveryNoteService.listHeldBy(profile.id) : Promise.resolve([]),
       ]);
       setQueue(pending);
+      setMine(held);
       setUpstream(coming);
       setRecent(done);
       setWarehouses(houses.filter((w) => w.isActive));
@@ -72,11 +85,36 @@ export const ReceivingView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [profile]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    deliveryNoteService
+      .listRecipients('driver')
+      .then(setDrivers)
+      .catch(() => setDrivers([]));
+  }, []);
+
+  /** Passes a slip in this keeper's hands to the driver who will fetch it. */
+  const handToDriver = async (slip: DeliveryNoteWithLines) => {
+    const driverId = driverFor[slip.id] || drivers[0]?.id;
+    if (!driverId) return;
+    setHandingId(slip.id);
+    setError(null);
+    try {
+      await deliveryNoteService.handOver({ slipId: slip.id, toUserId: driverId });
+      const driver = drivers.find((d) => d.id === driverId);
+      setNotice(`DN ${slip.dnNumber} handed to ${driver?.fullName || 'the driver'}.`);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not hand the slip over');
+    } finally {
+      setHandingId(null);
+    }
+  };
 
   const onReceived = async (message: string) => {
     setOpenId(null);
@@ -143,6 +181,7 @@ export const ReceivingView: React.FC = () => {
         description="Count what came off the truck and confirm it. Stock is created here and nowhere else."
         stats={[
           { label: 'awaiting count', value: openLines.length },
+          ...(mine.length ? [{ label: 'in your hands', value: mine.length }] : []),
           { label: 'not with a driver yet', value: comingLines.length },
           ...(term ? [{ label: 'matching', value: visibleLines.length + visibleComing.length }] : []),
         ]}
@@ -174,6 +213,65 @@ export const ReceivingView: React.FC = () => {
           autoFocus
         />
       </div>
+
+      {mine.length > 0 && (
+        <Panel
+          title="In your hands"
+          description="Handed to you directly. Give the slip to the driver who will collect the goods — the count happens when they arrive."
+          flush
+        >
+          <ul className="divide-line">
+            {mine.map((slip) => (
+              <li
+                key={slip.id}
+                className="px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center"
+              >
+                <span className="w-9 h-9 rounded-control bg-sunken border border-line flex items-center justify-center shrink-0">
+                  <Hand className="w-4 h-4 text-ink-faint" />
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-tiny font-semibold text-ink" data-numeric>
+                    DN {slip.dnNumber}
+                  </p>
+                  <p className="text-micro text-ink-faint truncate">
+                    {slip.lines[0]?.itemDescription ?? 'No item'}
+                    {slip.lines[0] ? ` · ${slip.lines[0].pdfQty} ${slip.lines[0].uom}` : ''}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Select
+                    aria-label={`Driver for delivery note ${slip.dnNumber}`}
+                    value={driverFor[slip.id] ?? drivers[0]?.id ?? ''}
+                    onChange={(e) =>
+                      setDriverFor((current) => ({ ...current, [slip.id]: e.target.value }))
+                    }
+                    className="h-8"
+                  >
+                    {drivers.length === 0 && <option value="">No active drivers</option>}
+                    {drivers.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.fullName || d.email}
+                      </option>
+                    ))}
+                  </Select>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    className="whitespace-nowrap"
+                    disabled={drivers.length === 0}
+                    loading={handingId === slip.id}
+                    onClick={() => handToDriver(slip)}
+                  >
+                    Hand over
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
 
       <Panel title="Awaiting count" flush>
         {loading ? (

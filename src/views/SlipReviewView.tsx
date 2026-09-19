@@ -16,6 +16,7 @@ import { Field, Select, Textarea } from '../components/ui/Field';
 import { useAuth } from '../context/AuthContext';
 import { deliveryNoteService } from '../services/DeliveryNoteService';
 import type { DeliveryNoteWithLines, Recipient } from '../models/deliveryNote';
+import { HANDOVER_TARGET_LABEL } from '../models/deliveryNote';
 import { WORKFLOW_LABEL, WORKFLOW_TONE } from '../models/deliveryNote';
 
 
@@ -34,9 +35,10 @@ export const SlipReviewView: React.FC = () => {
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
-  const [drivers, setDrivers] = useState<Recipient[]>([]);
+  // The GM can pass a slip to the warehouse as well as to a driver (D37).
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [handing, setHanding] = useState<string | null>(null);
-  const [driverId, setDriverId] = useState('');
+  const [recipientId, setRecipientId] = useState('');
 
   const canDecide = can('gm', 'ceo');
 
@@ -64,12 +66,15 @@ export const SlipReviewView: React.FC = () => {
 
   useEffect(() => {
     deliveryNoteService
-      .listRecipients('driver')
+      .listRecipients('holder')
       .then((list) => {
-        setDrivers(list);
-        setDriverId((current) => current || list[0]?.id || '');
+        // Not another GM: from here a slip moves forward, to the warehouse
+        // or to a driver.
+        const forward = list.filter((r) => r.role !== 'gm');
+        setRecipients(forward);
+        setRecipientId((current) => current || forward[0]?.id || '');
       })
-      .catch(() => setDrivers([]));
+      .catch(() => setRecipients([]));
   }, []);
 
   const pending = useMemo(
@@ -98,19 +103,19 @@ export const SlipReviewView: React.FC = () => {
   };
 
   /**
-   * Hands a slip to a driver. The supplier's delivery note is passed on exactly
-   * as it arrived — nothing is written on it and no copy is made.
+   * Hands a slip on. The supplier's delivery note is passed exactly as it
+   * arrived — nothing is written on it and no copy is made.
    */
   const handOver = async (slip: DeliveryNoteWithLines) => {
-    const driver = drivers.find((d) => d.id === driverId);
-    if (!driver) return;
+    const to = recipients.find((r) => r.id === recipientId);
+    if (!to) return;
     setBusyId(slip.id);
     setMessage(null);
     try {
-      await deliveryNoteService.handToDriver({ slip, driverId: driver.id });
+      await deliveryNoteService.handOver({ slipId: slip.id, toUserId: to.id });
       setMessage({
         tone: 'ok',
-        text: `Sent to ${driver.fullName}.`,
+        text: `Sent to ${to.fullName || to.email}.`,
       });
       setHanding(null);
       await refresh();
@@ -188,20 +193,20 @@ export const SlipReviewView: React.FC = () => {
                   <div className="px-4 pb-4 -mt-1">
                     <div className="p-3 rounded-panel bg-sunken border border-line">
                       <Field
-                        label="Driver"
-                        htmlFor={`driver-${slip.id}`}
+                        label="Hand to"
+                        htmlFor={`recipient-${slip.id}`}
                         required
-                        hint="The supplier's delivery note is passed on exactly as it arrived."
+                        hint="The supplier's delivery note is passed on exactly as it arrived. A slip can only be counted in after a driver has carried it."
                       >
                         <Select
-                          id={`driver-${slip.id}`}
-                          value={driverId}
-                          onChange={(e) => setDriverId(e.target.value)}
+                          id={`recipient-${slip.id}`}
+                          value={recipientId}
+                          onChange={(e) => setRecipientId(e.target.value)}
                         >
-                          {drivers.length === 0 && <option value="">No active drivers</option>}
-                          {drivers.map((d) => (
-                            <option key={d.id} value={d.id}>
-                              {d.fullName || d.email}
+                          {recipients.length === 0 && <option value="">Nobody to hand it to</option>}
+                          {recipients.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {(r.fullName || r.email) + ' · ' + HANDOVER_TARGET_LABEL[r.role as 'warehouse' | 'driver']}
                             </option>
                           ))}
                         </Select>
@@ -211,7 +216,7 @@ export const SlipReviewView: React.FC = () => {
                           variant="primary"
                           size="sm"
                           icon={Check}
-                          disabled={!driverId}
+                          disabled={!recipientId}
                           loading={busyId === slip.id}
                           onClick={() => handOver(slip)}
                         >
@@ -272,7 +277,7 @@ export const SlipReviewView: React.FC = () => {
                 <SlipRow
                   slip={slip}
                   busy={false}
-                  driverName={drivers.find((d) => d.id === slip.assignedDriverId)?.fullName}
+                  driverName={recipients.find((r) => r.id === slip.assignedDriverId)?.fullName}
                 />
               </li>
             ))}

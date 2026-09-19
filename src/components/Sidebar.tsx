@@ -7,6 +7,7 @@ import {
   Database,
   DollarSign,
   FileStack,
+  History,
   LayoutDashboard,
   Navigation,
   PackageCheck,
@@ -161,6 +162,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
     {
       heading: 'Oversight',
       items: [
+        {
+          id: 'custody',
+          label: 'Handovers',
+          icon: History,
+          // The client asked to be able to see which driver the warehouse
+          // gave a slip to; the admin files the slips, so they see it too.
+          roles: ['ceo', 'gm', 'manager', 'admin'],
+        },
         { id: 'approvalCenter', label: 'Approvals', icon: ClipboardCheck, roles: LEADERSHIP },
         { id: 'masterAudit', label: 'Audit Trail', icon: ScrollText, roles: LEADERSHIP },
         { id: 'reports', label: 'Reports', icon: BarChart3, roles: COMMERCIAL },

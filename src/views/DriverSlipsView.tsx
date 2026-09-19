@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Download, FileStack, Loader2, RefreshCw, Truck } from 'lucide-react';
+import { Check, CheckCircle2, Download, FileStack, Loader2, RefreshCw, Truck } from 'lucide-react';
 import { EmptyState, PageHeader, Panel } from '../components/ui/Panel';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -19,7 +19,9 @@ export const DriverSlipsView: React.FC = () => {
   const [slips, setSlips] = useState<DeliveryNoteWithLines[]>([]);
   const [loading, setLoading] = useState(true);
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!profile) return;
@@ -37,6 +39,26 @@ export const DriverSlipsView: React.FC = () => {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  /**
+   * The driver confirms the slip reached them (D38).
+   *
+   * A record that only says a slip was sent settles nothing later; this is
+   * the driver's own half of it.
+   */
+  const confirm = async (slip: DeliveryNoteWithLines) => {
+    setConfirmingId(slip.id);
+    setError(null);
+    try {
+      await deliveryNoteService.acknowledge(slip.id);
+      setNotice(`Confirmed ${slip.dnNumber}.`);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not confirm this slip');
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   const openSlip = async (slip: DeliveryNoteWithLines) => {
     const path = slip.pdfStoragePath;
@@ -62,6 +84,9 @@ export const DriverSlipsView: React.FC = () => {
 
       {error && (
         <div className="px-3 py-2 rounded-panel bg-risk-soft text-risk text-tiny">{error}</div>
+      )}
+      {notice && (
+        <div className="px-3 py-2 rounded-panel bg-ok-soft text-ok text-tiny">{notice}</div>
       )}
 
       <Panel flush>
@@ -120,16 +145,36 @@ export const DriverSlipsView: React.FC = () => {
                     </div>
                   </div>
 
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    icon={Download}
-                    loading={openingId === slip.id}
-                    disabled={!slip.pdfStoragePath}
-                    onClick={() => openSlip(slip)}
-                  >
-                    Open slip
-                  </Button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {slip.acknowledgedAt ? (
+                      <Badge tone="ok" icon={CheckCircle2}>
+                        Confirmed
+                      </Badge>
+                    ) : (
+                      slip.holderId === profile?.id && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          icon={Check}
+                          loading={confirmingId === slip.id}
+                          onClick={() => confirm(slip)}
+                        >
+                          Slip received
+                        </Button>
+                      )
+                    )}
+
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      icon={Download}
+                      loading={openingId === slip.id}
+                      disabled={!slip.pdfStoragePath}
+                      onClick={() => openSlip(slip)}
+                    >
+                      Open slip
+                    </Button>
+                  </div>
                 </li>
               );
             })}

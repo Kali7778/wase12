@@ -6,7 +6,7 @@ import { SavedSlipCard } from '../components/admin/SavedSlipCard';
 import { useSlipStaging } from '../hooks/useSlipStaging';
 import { deliveryNoteService } from '../services/DeliveryNoteService';
 import type { DeliveryNoteWithLines, Recipient, WorkflowEntry } from '../models/deliveryNote';
-import { WORKFLOW_LABEL } from '../models/deliveryNote';
+import { HANDOVER_TARGET_LABEL, WORKFLOW_LABEL } from '../models/deliveryNote';
 import { useAuth } from '../context/AuthContext';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -32,9 +32,10 @@ export const AdminSlipsView: React.FC = () => {
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
 
-  // Which GM a slip goes to. There can be several, so the sender chooses.
-  const [gms, setGms] = useState<Recipient[]>([]);
-  const [gmId, setGmId] = useState('');
+  // Where a slip goes next. The admin may hand it to the GM, straight to
+  // the warehouse, or straight to a driver (D37), so the sender chooses.
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [recipientId, setRecipientId] = useState('');
   const [handovers, setHandovers] = useState<WorkflowEntry[]>([]);
   const [everyone, setEveryone] = useState<Recipient[]>([]);
 
@@ -57,15 +58,14 @@ export const AdminSlipsView: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Both lists are needed: GMs to choose from, drivers to name in the record.
-    Promise.all([
-      deliveryNoteService.listRecipients('gm'),
-      deliveryNoteService.listRecipients('driver'),
-    ])
-      .then(([gmList, driverList]) => {
-        setGms(gmList);
-        setGmId((current) => current || gmList[0]?.id || '');
-        setEveryone([...gmList, ...driverList]);
+    // One list covers both jobs: who a slip can be handed to, and the names
+    // to show in the handover record.
+    deliveryNoteService
+      .listRecipients('holder')
+      .then((list) => {
+        setRecipients(list);
+        setRecipientId((current) => current || list.find((r) => r.role === 'gm')?.id || list[0]?.id || '');
+        setEveryone(list);
       })
       .catch(() => undefined);
   }, []);
@@ -96,18 +96,28 @@ export const AdminSlipsView: React.FC = () => {
   const sendSlips = async (ids: string[]) => {
     if (ids.length === 0) return;
     // A slip with no named recipient is a slip nobody is responsible for.
-    if (!gmId) {
-      setMessage({ tone: 'error', text: 'Choose a General Manager to send these slips to.' });
+    const to = recipients.find((r) => r.id === recipientId);
+    if (!to) {
+      setMessage({ tone: 'error', text: 'Choose who these slips should go to.' });
       return;
     }
     setSendingId(ids.length === 1 ? ids[0] : 'bulk');
     setMessage(null);
     try {
-      const gm = gms.find((g) => g.id === gmId);
-      const count = await deliveryNoteService.sendToGm(ids, undefined, gmId || undefined);
+      // Sending to the GM stays one call for the whole batch; the other two
+      // destinations are handed over one slip at a time.
+      let count = 0;
+      if (to.role === 'gm') {
+        count = await deliveryNoteService.sendToGm(ids, undefined, to.id);
+      } else {
+        for (const id of ids) {
+          await deliveryNoteService.handOver({ slipId: id, toUserId: to.id });
+          count += 1;
+        }
+      }
       setMessage({
         tone: 'ok',
-        text: `Sent ${count} slip${count === 1 ? '' : 's'} to ${gm?.fullName ?? 'the GM'}.`,
+        text: `Sent ${count} slip${count === 1 ? '' : 's'} to ${to.fullName || to.email}.`,
       });
       setSelected(new Set());
       await refresh();
@@ -281,27 +291,28 @@ export const AdminSlipsView: React.FC = () => {
                 {allSelected ? 'Clear selection' : 'Select all not sent'}
               </button>
               {/*
-                Shown even when there is only one General Manager. Hiding it
-                below two made "Send to GM" look like a fixed destination:
-                the slip went to whoever happened to be first in the list and
-                the admin never saw a name. Choosing the recipient is the
-                admin's job, so the recipient has to be on screen.
+                The destination is always on screen, even when there is only
+                one choice. It used to be hidden below two General Managers,
+                and the slip then went to whoever happened to be first in the
+                list with the admin never seeing a name.
               */}
               <label className="flex items-center gap-1.5 text-micro text-ink-faint">
                 To
                 <select
-                  value={gmId}
-                  onChange={(e) => setGmId(e.target.value)}
-                  aria-label="General Manager to send to"
-                  disabled={gms.length === 0}
+                  value={recipientId}
+                  onChange={(e) => setRecipientId(e.target.value)}
+                  aria-label="Who to send these slips to"
+                  disabled={recipients.length === 0}
                   className="h-7 px-2 pr-7 rounded-control border border-line bg-surface text-micro text-ink cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {gms.length === 0 ? (
-                    <option value="">No General Manager available</option>
+                  {recipients.length === 0 ? (
+                    <option value="">Nobody available</option>
                   ) : (
-                    gms.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.fullName || g.email}
+                    recipients.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {(r.fullName || r.email) +
+                          ' · ' +
+                          (HANDOVER_TARGET_LABEL[r.role as 'gm' | 'warehouse' | 'driver'] ?? r.role)}
                       </option>
                     ))
                   )}
@@ -309,7 +320,7 @@ export const AdminSlipsView: React.FC = () => {
               </label>
               <button
                 onClick={() => sendSlips([...selected])}
-                disabled={selected.size === 0 || sendingId !== null || !gmId}
+                disabled={selected.size === 0 || sendingId !== null || !recipientId}
                 className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-indigo-600/30 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 {sendingId === 'bulk' ? (
@@ -317,7 +328,7 @@ export const AdminSlipsView: React.FC = () => {
                 ) : (
                   <Send className="w-3.5 h-3.5" />
                 )}
-                Send {selected.size || ''} to GM
+                Send {selected.size || ''}
               </button>
             </div>
           )}
