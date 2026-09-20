@@ -2,9 +2,26 @@ import { useCallback, useRef, useState } from 'react';
 import { detectFileType, extractPdfText, hashFile, renderPdfThumbnail, type SourceFileType } from '../utils/dnExtractor';
 import { emptyExtraction, parseDeliveryNote, revalidate, type ExtractedDn } from '../utils/dnParser';
 import { deliveryNoteService, uploadBatchService } from '../services/DeliveryNoteService';
-import type { DuplicateMatch } from '../models/deliveryNote';
+import type { DuplicateMatch, PossibleOriginal, ReissueReason } from '../models/deliveryNote';
 
 export type StagedStatus = 'parsing' | 'ready' | 'saving' | 'saved' | 'error';
+
+/** What the uploader said about "is this a replacement?". */
+export interface ReissueAnswer {
+  answered: boolean;
+  isReplacement: boolean;
+  originalId: string;
+  reason: ReissueReason | '';
+  note: string;
+}
+
+const NO_REISSUE: ReissueAnswer = {
+  answered: false,
+  isReplacement: false,
+  originalId: '',
+  reason: '',
+  note: '',
+};
 
 export interface StagedSlip {
   /** Local id, valid only while the file sits in the staging area. */
@@ -22,6 +39,14 @@ export interface StagedSlip {
    */
   soConflict: DuplicateMatch | null;
   soOverrideReason: string;
+  /**
+   * Slips this one could be replacing (D33). The supplier reprints a lost
+   * sheet with new numbers, so nothing here can tell on its own; when the
+   * database finds a still-expected slip for the same goods, the card has
+   * to ask rather than hope somebody remembers to say so.
+   */
+  possibleOriginals: PossibleOriginal[];
+  reissue: ReissueAnswer;
   status: StagedStatus;
   error?: string;
   /** Id of the saved delivery note, once it has been written. */
@@ -35,11 +60,20 @@ const nextKey = () => `staged-${Date.now()}-${counter++}`;
  * Whether a staged slip can be written. One definition, used for both the
  * button's count and the save itself, so the two can never disagree.
  */
+/** A replacement is only complete with an original, a reason and — for
+ *  "other" — a sentence saying what happened (D32, D48). */
+const reissueComplete = (r: ReissueAnswer) =>
+  r.originalId !== '' && r.reason !== '' && (r.reason !== 'other' || r.note.trim() !== '');
+
 const isSaveable = (s: StagedSlip, canOverrideSo: boolean) =>
   s.status === 'ready' &&
   s.data.needsReview.length === 0 &&
   !s.duplicate &&
-  (!s.soConflict || (canOverrideSo && s.soOverrideReason.trim() !== ''));
+  (!s.soConflict || (canOverrideSo && s.soOverrideReason.trim() !== '')) &&
+  // A slip the system suspects is a replacement cannot be filed until
+  // somebody says one way or the other.
+  (s.possibleOriginals.length === 0 || s.reissue.answered) &&
+  (!s.reissue.isReplacement || reissueComplete(s.reissue));
 
 /**
  * Staging area for a bulk slip upload.
@@ -87,6 +121,8 @@ export function useSlipStaging({ canOverrideSo }: { canOverrideSo: boolean }) {
           duplicate: null,
           soConflict: null,
           soOverrideReason: '',
+          possibleOriginals: [],
+          reissue: NO_REISSUE,
           status: 'parsing',
         });
       }
@@ -162,6 +198,22 @@ export function useSlipStaging({ canOverrideSo }: { canOverrideSo: boolean }) {
         // still rejects a repeated delivery note number on save.
       }
 
+      // Then, for each slip, whether it looks like a replacement.
+      for (const slip of staged) {
+        const read = parsedByKey.get(slip.key);
+        if (!read || !read.itemNumber || !read.pdfQty) continue;
+        try {
+          const originals = await deliveryNoteService.findPossibleOriginals({
+            itemNumber: read.itemNumber,
+            pdfQty: read.pdfQty,
+            customerNumber: read.customerNumber || null,
+          });
+          if (originals.length > 0) update(slip.key, { possibleOriginals: originals });
+        } catch {
+          // Only a prompt. Nothing here decides whether the slip can be saved.
+        }
+      }
+
       setBusy(false);
     },
     [update],
@@ -187,6 +239,15 @@ export function useSlipStaging({ canOverrideSo }: { canOverrideSo: boolean }) {
         }),
       );
     },
+    [],
+  );
+
+  /** Records what the uploader said about this slip being a replacement. */
+  const setReissue = useCallback(
+    (key: string, patch: Partial<ReissueAnswer>) =>
+      setSlips((current) =>
+        current.map((s) => (s.key === key ? { ...s, reissue: { ...s.reissue, ...patch } } : s)),
+      ),
     [],
   );
 
@@ -270,6 +331,11 @@ export function useSlipStaging({ canOverrideSo }: { canOverrideSo: boolean }) {
                 pdfFileName: slip.file.name,
                 pdfSha256: slip.sha256,
                 soOverrideReason: slip.soConflict ? slip.soOverrideReason : undefined,
+                replacesDnId: slip.reissue.isReplacement ? slip.reissue.originalId : undefined,
+                reissueReason: slip.reissue.isReplacement
+                  ? (slip.reissue.reason as ReissueReason)
+                  : undefined,
+                reissueNote: slip.reissue.isReplacement ? slip.reissue.note : undefined,
               },
             );
 
@@ -298,12 +364,16 @@ export function useSlipStaging({ canOverrideSo }: { canOverrideSo: boolean }) {
   const reviewCount = slips.filter((s) => s.status === 'ready' && s.data.needsReview.length > 0).length;
   const duplicateCount = slips.filter((s) => s.duplicate).length;
   const soConflictCount = slips.filter((s) => !s.duplicate && s.soConflict).length;
+  const unansweredReissueCount = slips.filter(
+    (s) => s.possibleOriginals.length > 0 && !s.reissue.answered,
+  ).length;
 
   return {
     slips,
     busy,
     addFiles,
     editField,
+    setReissue,
     setSoOverrideReason,
     remove,
     clearSaved,
@@ -312,5 +382,6 @@ export function useSlipStaging({ canOverrideSo }: { canOverrideSo: boolean }) {
     reviewCount,
     duplicateCount,
     soConflictCount,
+    unansweredReissueCount,
   };
 }

@@ -1,10 +1,20 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Check, CheckCircle2, Download, FileStack, Loader2, RefreshCw, Truck } from 'lucide-react';
+import {
+  Check,
+  CheckCircle2,
+  Copy,
+  Download,
+  FileStack,
+  Loader2,
+  RefreshCw,
+  Truck,
+} from 'lucide-react';
 import { EmptyState, PageHeader, Panel } from '../components/ui/Panel';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../context/AuthContext';
 import { deliveryNoteService } from '../services/DeliveryNoteService';
+import { ReportReissueForm } from '../components/driver/ReportReissueForm';
 import type { DeliveryNoteWithLines } from '../models/deliveryNote';
 
 /**
@@ -20,6 +30,7 @@ export const DriverSlipsView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [reportingId, setReportingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -105,8 +116,8 @@ export const DriverSlipsView: React.FC = () => {
             {slips.map((slip) => {
               const line = slip.lines[0];
               return (
-                <li
-                  key={slip.id}
+                <li key={slip.id}>
+                <div
                   className="px-4 py-3.5 flex flex-col gap-3 sm:flex-row sm:items-center hover:bg-raised transition-colors"
                 >
                   <span className="w-9 h-9 rounded-control bg-sunken border border-line flex items-center justify-center shrink-0">
@@ -164,6 +175,23 @@ export const DriverSlipsView: React.FC = () => {
                       )
                     )}
 
+                    {/*
+                      The supplier reprints a sheet when the first one is
+                      lost in their yard (D34). Reporting it here is what
+                      stops the two sheets being counted as two deliveries.
+                    */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={Copy}
+                      onClick={() => {
+                        setReportingId(reportingId === slip.id ? null : slip.id);
+                        setNotice(null);
+                      }}
+                    >
+                      New sheet
+                    </Button>
+
                     <Button
                       size="sm"
                       variant="primary"
@@ -175,6 +203,19 @@ export const DriverSlipsView: React.FC = () => {
                       Open slip
                     </Button>
                   </div>
+                </div>
+
+                {reportingId === slip.id && (
+                  <ReportReissueForm
+                    slip={slip}
+                    onCancel={() => setReportingId(null)}
+                    onDone={async (message) => {
+                      setReportingId(null);
+                      setNotice(message);
+                      await refresh();
+                    }}
+                  />
+                )}
                 </li>
               );
             })}

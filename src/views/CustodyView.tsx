@@ -15,13 +15,15 @@ import { CUSTODY_ACTION_LABEL, type CustodyAction, type CustodyEntry } from '../
  * append-only handover ledger, so what is shown here is what happened —
  * the rows cannot be edited or removed once written.
  */
-const TONE: Record<CustodyAction, 'neutral' | 'accent' | 'ok' | 'risk' | 'info'> = {
+const TONE: Record<CustodyAction, 'neutral' | 'accent' | 'ok' | 'risk' | 'info' | 'warn'> = {
   hand_over: 'accent',
   reassign_driver: 'info',
   acknowledge: 'ok',
   approve: 'ok',
   reject: 'risk',
   receive: 'ok',
+  // A replaced sheet is not a failure, but it is not routine either.
+  replace: 'warn',
 };
 
 export const CustodyView: React.FC = () => {

@@ -19,6 +19,7 @@ import { StockOutView } from './views/StockOutView';
 import { InventoryView } from './views/InventoryView';
 import { ProductsView } from './views/ProductsView';
 import { CustodyView } from './views/CustodyView';
+import { ReissuesView } from './views/ReissuesView';
 import { DashboardView } from './views/DashboardView';
 import { TripsView } from './views/TripsView';
 import { DispatcherView } from './views/DispatcherView';
@@ -74,6 +75,8 @@ const MainLayout: React.FC = () => {
         return <ProductsView />;
       case 'custody':
         return <CustodyView />;
+      case 'reissues':
+        return <ReissuesView />;
       case 'dashboard':
         return <DashboardView onOpenNewTripModal={() => setShowNewTripModal(true)} />;
       case 'trips':

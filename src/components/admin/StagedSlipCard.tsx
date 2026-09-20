@@ -8,15 +8,21 @@ import {
   Trash2,
   XCircle,
 } from 'lucide-react';
-import type { StagedSlip } from '../../hooks/useSlipStaging';
+
+const REISSUE_REASONS: ReissueReason[] = ['lost', 'damaged', 'supplier_correction', 'other'];
+import type { ReissueAnswer, StagedSlip } from '../../hooks/useSlipStaging';
+import { REISSUE_REASON_LABEL, type ReissueReason } from '../../models/deliveryNote';
 import { FIELD_LABEL, type ExtractedDn } from '../../utils/dnParser';
 
 interface StagedSlipCardProps {
   slip: StagedSlip;
   /** Admin or superadmin: may accept a sales order number already in use. */
   canOverrideSo: boolean;
+  /** Admin, GM or superadmin: may record this slip as a replacement (D32). */
+  canRecordReissue: boolean;
   onEdit: (key: string, field: keyof ExtractedDn, value: string) => void;
   onSoReason: (key: string, reason: string) => void;
+  onReissue: (key: string, patch: Partial<ReissueAnswer>) => void;
   onRemove: (key: string) => void;
 }
 
@@ -39,15 +45,25 @@ const CARD_FIELDS: Array<{ field: keyof ExtractedDn; wide?: boolean }> = [
 export const StagedSlipCard: React.FC<StagedSlipCardProps> = ({
   slip,
   canOverrideSo,
+  canRecordReissue,
   onEdit,
   onSoReason,
+  onReissue,
   onRemove,
 }) => {
   const { data, status, duplicate, soConflict } = slip;
   const needsReview = data.needsReview.length > 0;
   const soUnresolved =
     Boolean(soConflict) && !duplicate && !(canOverrideSo && slip.soOverrideReason.trim() !== '');
-  const blocked = Boolean(duplicate) || needsReview || soUnresolved;
+  const { possibleOriginals, reissue } = slip;
+  const reissueUnanswered = possibleOriginals.length > 0 && !reissue.answered;
+  const reissueIncomplete =
+    reissue.isReplacement &&
+    (reissue.originalId === '' ||
+      reissue.reason === '' ||
+      (reissue.reason === 'other' && reissue.note.trim() === ''));
+  const blocked =
+    Boolean(duplicate) || needsReview || soUnresolved || reissueUnanswered || reissueIncomplete;
   const editable = status !== 'saving' && status !== 'saved';
 
   return (
@@ -128,6 +144,115 @@ export const StagedSlipCard: React.FC<StagedSlipCardProps> = ({
               className="w-full px-2 py-1 rounded-lg border border-amber-300 dark:border-amber-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </label>
+        )}
+
+        {possibleOriginals.length > 0 && !duplicate && (
+          <div className="p-2 rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 text-[11px] leading-snug text-amber-800 dark:text-amber-300 space-y-2">
+            <div className="flex items-start gap-1.5">
+              <Copy className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              <span>
+                The same item and quantity are already expected on{' '}
+                <strong>DN {possibleOriginals[0].dnNumber}</strong>
+                {possibleOriginals.length > 1 && ` and ${possibleOriginals.length - 1} more`}. Is this
+                sheet the supplier's replacement for it?
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={!canRecordReissue || !editable}
+                onClick={() => onReissue(slip.key, { answered: true, isReplacement: true })}
+                className={`px-2 py-1 rounded-md border text-[11px] font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                  reissue.answered && reissue.isReplacement
+                    ? 'bg-amber-600 text-white border-transparent'
+                    : 'border-amber-300 dark:border-amber-800'
+                }`}
+              >
+                Yes, it replaces one
+              </button>
+              <button
+                type="button"
+                disabled={!editable}
+                onClick={() =>
+                  onReissue(slip.key, {
+                    answered: true,
+                    isReplacement: false,
+                    originalId: '',
+                    reason: '',
+                    note: '',
+                  })
+                }
+                className={`px-2 py-1 rounded-md border text-[11px] font-semibold cursor-pointer disabled:opacity-50 ${
+                  reissue.answered && !reissue.isReplacement
+                    ? 'bg-slate-700 text-white border-transparent'
+                    : 'border-amber-300 dark:border-amber-800'
+                }`}
+              >
+                No, separate delivery
+              </button>
+            </div>
+
+            {!canRecordReissue && (
+              <p>Only an admin or the GM can record a replacement.</p>
+            )}
+
+            {reissue.isReplacement && (
+              <div className="space-y-2 pt-1">
+                <label className="block">
+                  <span className="block text-[10px] font-semibold uppercase tracking-wide mb-0.5">
+                    Which slip does it replace? *
+                  </span>
+                  <select
+                    value={reissue.originalId}
+                    disabled={!editable}
+                    onChange={(e) => onReissue(slip.key, { originalId: e.target.value })}
+                    className="w-full px-2 py-1 rounded-lg border border-amber-300 dark:border-amber-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 cursor-pointer"
+                  >
+                    <option value="">Choose the slip</option>
+                    {possibleOriginals.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {`DN ${o.dnNumber} · ${o.pdfQty} · ${o.holderName || 'not handed out'}`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="block text-[10px] font-semibold uppercase tracking-wide mb-0.5">
+                    Why was it reissued? *
+                  </span>
+                  <select
+                    value={reissue.reason}
+                    disabled={!editable}
+                    onChange={(e) => onReissue(slip.key, { reason: e.target.value as ReissueReason })}
+                    className="w-full px-2 py-1 rounded-lg border border-amber-300 dark:border-amber-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 cursor-pointer"
+                  >
+                    <option value="">Choose a reason</option>
+                    {REISSUE_REASONS.map((r) => (
+                      <option key={r} value={r}>
+                        {REISSUE_REASON_LABEL[r]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="block text-[10px] font-semibold uppercase tracking-wide mb-0.5">
+                    Remarks {reissue.reason === 'other' && '*'}
+                  </span>
+                  <textarea
+                    rows={2}
+                    value={reissue.note}
+                    disabled={!editable}
+                    onChange={(e) => onReissue(slip.key, { note: e.target.value })}
+                    placeholder="What happened to the first sheet"
+                    className="w-full px-2 py-1 rounded-lg border border-amber-300 dark:border-amber-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                  />
+                </label>
+              </div>
+            )}
+          </div>
         )}
 
         {needsReview && !duplicate && (

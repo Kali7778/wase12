@@ -4,6 +4,7 @@ import type { Enums } from '../types/database';
 export type DnWorkflowStatus = Enums<'dn_workflow_status'>;
 export type ExtractionMethod = Enums<'extraction_method'>;
 export type DiscrepancyReason = Enums<'dn_discrepancy_reason'>;
+export type ReissueReason = Enums<'dn_reissue_reason'>;
 
 /** A day's intake of slips — "20 slips arrived today" is one batch. */
 export interface UploadBatch extends AuditedRecord {
@@ -47,6 +48,15 @@ export interface DeliveryNote extends AuditedRecord {
   holderSince: string | null;
   /** When the driver confirmed the slip reached them (D38). */
   acknowledgedAt: string | null;
+
+  /**
+   * The slip this one was issued to replace (D32). The supplier reprints a
+   * lost or damaged sheet with new numbers, so nothing but a person can
+   * say the two are one delivery.
+   */
+  replacesDnId: string | null;
+  reissueReason: ReissueReason | null;
+  reissueNote: string | null;
 
   /** Driver the GM handed this slip to. */
   assignedDriverId: string | null;
@@ -129,6 +139,7 @@ export const WORKFLOW_LABEL: Record<DnWorkflowStatus, string> = {
   sent_to_driver: 'With driver',
   rejected: 'Rejected',
   received: 'Received',
+  replaced: 'Replaced',
 };
 
 /** Badge colour for each workflow status, so every screen agrees. */
@@ -143,6 +154,7 @@ export const WORKFLOW_TONE: Record<
   sent_to_driver: 'info',
   rejected: 'risk',
   received: 'ok',
+  replaced: 'neutral',
 };
 
 /**
@@ -231,7 +243,8 @@ export type CustodyAction =
   | 'acknowledge'
   | 'approve'
   | 'reject'
-  | 'receive';
+  | 'receive'
+  | 'replace';
 
 export interface CustodyEntry {
   id: string;
@@ -252,6 +265,63 @@ export interface CustodyEntry {
   toRole: UserRole | null;
 }
 
+export const REISSUE_REASON_LABEL: Record<ReissueReason, string> = {
+  lost: 'Lost',
+  damaged: 'Damaged',
+  supplier_correction: 'Supplier correction',
+  other: 'Other',
+};
+
+/** A slip the supplier may have reprinted — offered as a possible original. */
+export interface PossibleOriginal {
+  id: string;
+  dnNumber: string;
+  soNumber: string;
+  printDate: string | null;
+  pdfQty: number;
+  itemNumber: string;
+  workflowStatus: DnWorkflowStatus;
+  holderName: string | null;
+}
+
+/** A reissued sheet reported from the yard, waiting to be checked (D34). */
+export interface ReissueSubmission {
+  id: string;
+  originalDnId: string;
+  originalDnNumber: string | null;
+  reason: ReissueReason;
+  note: string | null;
+  filePath: string | null;
+  fileType: string;
+  dnNumber: string | null;
+  soNumber: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedBy: string;
+  submittedAt: string;
+  decidedAt: string | null;
+  decisionNote: string | null;
+  createdDnId: string | null;
+}
+
+/** One row of the month-end register: the supplier's two sheets, side by side. */
+export interface ReissueRegisterRow {
+  deliveryNoteId: string;
+  newDn: string;
+  newSo: string;
+  replacedDn: string;
+  replacedSo: string;
+  reason: ReissueReason;
+  remarks: string | null;
+  itemNumber: string | null;
+  qty: number | null;
+  uom: string | null;
+  recordedAt: string;
+  recordedBy: string | null;
+  reportedAt: string | null;
+  reportedBy: string | null;
+  newSlipStatus: DnWorkflowStatus;
+}
+
 export const CUSTODY_ACTION_LABEL: Record<CustodyAction, string> = {
   hand_over: 'Handed over',
   reassign_driver: 'Driver changed',
@@ -259,4 +329,5 @@ export const CUSTODY_ACTION_LABEL: Record<CustodyAction, string> = {
   approve: 'Approved',
   reject: 'Rejected',
   receive: 'Counted in',
+  replace: 'Replaced',
 };

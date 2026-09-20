@@ -4,6 +4,10 @@ import { toAppError } from '../lib/errors';
 import type {
   CustodyEntry,
   DeliveryNote,
+  PossibleOriginal,
+  ReissueRegisterRow,
+  ReissueSubmission,
+  ReissueReason,
   DeliveryNoteLine,
   DeliveryNoteWithLines,
   DiscrepancyReason,
@@ -109,6 +113,9 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
       holderRole: row.holder_role,
       holderSince: row.holder_since,
       acknowledgedAt: row.acknowledged_at,
+      replacesDnId: row.replaces_dn_id,
+      reissueReason: row.reissue_reason,
+      reissueNote: row.reissue_note,
       assignedDriverId: row.assigned_driver_id,
       driverSentAt: row.driver_sent_at,
       driverSentBy: row.driver_sent_by,
@@ -163,6 +170,182 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
     }));
   }
 
+  /**
+   * Slips this one could be replacing.
+   *
+   * The whole scheme leans on somebody ticking a box, and a replacement
+   * filed as an ordinary delivery is exactly the mistake that shows up at
+   * month end as the supplier's word against ours (D33). The database
+   * looks for a still-expected slip with the same item and quantity so the
+   * screen can ask instead of hoping.
+   */
+  async findPossibleOriginals(input: {
+    itemNumber: string;
+    pdfQty: number;
+    customerNumber?: string | null;
+  }): Promise<PossibleOriginal[]> {
+    const { data, error } = await this.db.rpc('find_possible_originals', {
+      p_item_number: input.itemNumber,
+      p_pdf_qty: input.pdfQty,
+      p_customer_number: input.customerNumber ?? undefined,
+    });
+
+    if (error) throw toAppError(error, 'Looking for the slip this may replace');
+    return (data ?? []).map((row) => ({
+      id: row.id,
+      dnNumber: row.dn_number,
+      soNumber: row.so_number,
+      printDate: row.print_date,
+      pdfQty: Number(row.pdf_qty),
+      itemNumber: row.item_number,
+      workflowStatus: row.workflow_status,
+      holderName: row.holder_name,
+    }));
+  }
+
+  /**
+   * A driver reports a reissued sheet from the yard (D34).
+   *
+   * It is not a delivery note yet. The numbers on the sheet are what the
+   * rest of the system keys off, and an admin or the GM reads them off the
+   * photo before it becomes one (D47).
+   */
+  async submitReissue(input: {
+    originalDnId: string;
+    reason: ReissueReason;
+    note?: string;
+    filePath?: string;
+    fileType?: string;
+    dnNumber?: string;
+    soNumber?: string;
+  }): Promise<void> {
+    const { error } = await this.db.rpc('submit_reissue', {
+      p_original_dn_id: input.originalDnId,
+      p_reason: input.reason,
+      p_note: input.note?.trim() || undefined,
+      p_file_path: input.filePath ?? undefined,
+      p_file_type: input.fileType ?? undefined,
+      p_dn_number: input.dnNumber?.trim() || undefined,
+      p_so_number: input.soNumber?.trim() || undefined,
+    });
+
+    if (error) throw toAppError(error, 'Reporting the reissued slip');
+  }
+
+  /** Stores a photo of a reissued sheet in the private bucket. */
+  async uploadReissuePhoto(file: File, originalDn: string): Promise<string> {
+    const extension = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const safeDn = originalDn.replace(/[^A-Za-z0-9_-]/g, '') || 'unknown';
+    const path = `reissues/${safeDn}_${Date.now()}.${extension}`;
+
+    const { error } = await supabase.storage
+      .from(DELIVERY_NOTES_BUCKET)
+      .upload(path, file, { contentType: file.type || 'image/jpeg', upsert: false });
+
+    if (error) throw toAppError(error, 'Uploading the photo');
+    return path;
+  }
+
+  /** Reported reissues. Everyone sees their own; supervisors see them all. */
+  async listReissueSubmissions(
+    status?: ReissueSubmission['status'],
+    limit = 50,
+  ): Promise<ReissueSubmission[]> {
+    let query = supabase
+      .from('dn_reissue_submissions')
+      .select('*, delivery_notes!dn_reissue_submissions_original_dn_id_fkey(dn_number)')
+      .order('submitted_at', { ascending: false })
+      .limit(limit);
+
+    if (status) query = query.eq('status', status);
+
+    const { data, error } = await query;
+    if (error) throw toAppError(error, 'Loading the reported reissues');
+
+    type Row = Tables<'dn_reissue_submissions'> & { delivery_notes: { dn_number: string } | null };
+    return ((data ?? []) as Row[]).map((row) => ({
+      id: row.id,
+      originalDnId: row.original_dn_id,
+      originalDnNumber: row.delivery_notes?.dn_number ?? null,
+      reason: row.reason,
+      note: row.note,
+      filePath: row.file_path,
+      fileType: row.file_type,
+      dnNumber: row.dn_number,
+      soNumber: row.so_number,
+      status: row.status as ReissueSubmission['status'],
+      submittedBy: row.submitted_by,
+      submittedAt: row.submitted_at,
+      decidedAt: row.decided_at,
+      decisionNote: row.decision_note,
+      createdDnId: row.created_dn_id,
+    }));
+  }
+
+  /** Turns a reported reissue into a delivery note (admin, GM, superadmin). */
+  async approveReissue(input: {
+    submissionId: string;
+    dnNumber: string;
+    soNumber: string;
+    pdfQty?: number;
+    note?: string;
+  }): Promise<DeliveryNote> {
+    const { data, error } = await this.db.rpc('approve_reissue', {
+      p_submission_id: input.submissionId,
+      p_dn_number: input.dnNumber.trim(),
+      p_so_number: input.soNumber.trim(),
+      p_pdf_qty: input.pdfQty ?? undefined,
+      p_note: input.note?.trim() || undefined,
+    });
+
+    if (error) throw toAppError(error, 'Approving the reissue');
+    return this.toModel(data as Tables<'delivery_notes'>);
+  }
+
+  /** Turns one down. The reason is required — the driver has to know why. */
+  async rejectReissue(submissionId: string, reason: string): Promise<void> {
+    const { error } = await this.db.rpc('reject_reissue', {
+      p_submission_id: submissionId,
+      p_reason: reason.trim(),
+    });
+
+    if (error) throw toAppError(error, 'Turning down the reissue');
+  }
+
+  /**
+   * The month-end register: every replacement, with the sheet it replaced.
+   *
+   * This is the answer when the supplier's count of issued slips is higher
+   * than ours.
+   */
+  async listReissueRegister(limit = 500): Promise<ReissueRegisterRow[]> {
+    const { data, error } = await supabase
+      .from('v_reissue_register')
+      .select('*')
+      .order('Recorded', { ascending: false })
+      .limit(limit);
+
+    if (error) throw toAppError(error, 'Loading the reissue register');
+
+    return (data ?? []).map((row) => ({
+      deliveryNoteId: row.delivery_note_id as string,
+      newDn: row['New DN'] as string,
+      newSo: row['New SO'] as string,
+      replacedDn: row['Replaced DN'] as string,
+      replacedSo: row['Replaced SO'] as string,
+      reason: row.Reason as ReissueReason,
+      remarks: row.Remarks,
+      itemNumber: row.Item,
+      qty: row.Qty === null ? null : Number(row.Qty),
+      uom: row.UOM,
+      recordedAt: row.Recorded as string,
+      recordedBy: row['Recorded by'],
+      reportedAt: row.Reported,
+      reportedBy: row['Reported by'],
+      newSlipStatus: row['New slip status'] as DeliveryNote['workflowStatus'],
+    }));
+  }
+
   /** Uploads the source file to the private bucket and returns its path. */
   async uploadFile(file: File, batchDate: string, dnNumber: string): Promise<string> {
     const extension = file.name.split('.').pop()?.toLowerCase() ?? 'pdf';
@@ -197,6 +380,10 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
       pdfSha256?: string;
       /** Only when an admin accepts a sales order number already in use. */
       soOverrideReason?: string;
+      /** Set when this slip replaces one the supplier reissued (D32). */
+      replacesDnId?: string;
+      reissueReason?: ReissueReason;
+      reissueNote?: string;
     },
   ): Promise<DeliveryNote> {
     const { data, error } = await this.db.rpc('create_delivery_note', {
@@ -225,6 +412,9 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
       p_confidence: input.confidence ?? null,
       p_needs_review: input.needsReview ?? [],
       p_so_override_reason: options.soOverrideReason?.trim() || undefined,
+      p_replaces_dn_id: options.replacesDnId ?? undefined,
+      p_reissue_reason: options.reissueReason ?? undefined,
+      p_reissue_note: options.reissueNote?.trim() || undefined,
     });
 
     if (error) throw toAppError(error, 'Saving the delivery note');
@@ -419,6 +609,8 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
       .from('delivery_notes')
       .select('*, delivery_note_lines(*)')
       .eq('assigned_driver_id', driverId)
+      // A replaced sheet is void: the driver carries its replacement now.
+      .neq('workflow_status', 'replaced')
       .order('driver_sent_at', { ascending: false });
 
     if (error) throw toAppError(error, 'Loading your delivery notes');

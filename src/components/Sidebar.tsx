@@ -7,6 +7,7 @@ import {
   Database,
   DollarSign,
   FileStack,
+  Copy,
   History,
   LayoutDashboard,
   Navigation,
@@ -162,6 +163,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
     {
       heading: 'Oversight',
       items: [
+        {
+          id: 'reissues',
+          label: 'Reissued slips',
+          icon: Copy,
+          // The month-end answer when the supplier's count of issued notes
+          // is higher than ours.
+          roles: ['ceo', 'gm', 'manager', 'admin'],
+        },
         {
           id: 'custody',
           label: 'Handovers',

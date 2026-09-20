@@ -131,6 +131,20 @@ export type Database = {
             referencedColumns: ["delivery_note_id"]
           },
           {
+            foreignKeyName: "delivery_note_lines_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "delivery_note_lines_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["replaced_dn_id"]
+          },
+          {
             foreignKeyName: "delivery_note_lines_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
@@ -181,6 +195,11 @@ export type Database = {
           pdf_sha256: string | null
           pdf_storage_path: string | null
           print_date: string | null
+          reissue_note: string | null
+          reissue_reason:
+            | Database["public"]["Enums"]["dn_reissue_reason"]
+            | null
+          replaces_dn_id: string | null
           salesman: string | null
           sent_at: string | null
           sent_by: string | null
@@ -226,6 +245,11 @@ export type Database = {
           pdf_sha256?: string | null
           pdf_storage_path?: string | null
           print_date?: string | null
+          reissue_note?: string | null
+          reissue_reason?:
+            | Database["public"]["Enums"]["dn_reissue_reason"]
+            | null
+          replaces_dn_id?: string | null
           salesman?: string | null
           sent_at?: string | null
           sent_by?: string | null
@@ -271,6 +295,11 @@ export type Database = {
           pdf_sha256?: string | null
           pdf_storage_path?: string | null
           print_date?: string | null
+          reissue_note?: string | null
+          reissue_reason?:
+            | Database["public"]["Enums"]["dn_reissue_reason"]
+            | null
+          replaces_dn_id?: string | null
           salesman?: string | null
           sent_at?: string | null
           sent_by?: string | null
@@ -326,6 +355,34 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "delivery_notes_replaces_dn_id_fkey"
+            columns: ["replaces_dn_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_replaces_dn_id_fkey"
+            columns: ["replaces_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_dashboard"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_replaces_dn_id_fkey"
+            columns: ["replaces_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_replaces_dn_id_fkey"
+            columns: ["replaces_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["replaced_dn_id"]
+          },
+          {
             foreignKeyName: "delivery_notes_sent_by_fkey"
             columns: ["sent_by"]
             isOneToOne: false
@@ -351,6 +408,131 @@ export type Database = {
             columns: ["upload_batch_id"]
             isOneToOne: false
             referencedRelation: "upload_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dn_reissue_submissions: {
+        Row: {
+          created_dn_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          dn_number: string | null
+          file_path: string | null
+          file_type: string
+          id: string
+          note: string | null
+          original_dn_id: string
+          reason: Database["public"]["Enums"]["dn_reissue_reason"]
+          so_number: string | null
+          status: string
+          submitted_at: string
+          submitted_by: string
+        }
+        Insert: {
+          created_dn_id?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          dn_number?: string | null
+          file_path?: string | null
+          file_type?: string
+          id?: string
+          note?: string | null
+          original_dn_id: string
+          reason: Database["public"]["Enums"]["dn_reissue_reason"]
+          so_number?: string | null
+          status?: string
+          submitted_at?: string
+          submitted_by: string
+        }
+        Update: {
+          created_dn_id?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          dn_number?: string | null
+          file_path?: string | null
+          file_type?: string
+          id?: string
+          note?: string | null
+          original_dn_id?: string
+          reason?: Database["public"]["Enums"]["dn_reissue_reason"]
+          so_number?: string | null
+          status?: string
+          submitted_at?: string
+          submitted_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dn_reissue_submissions_created_dn_id_fkey"
+            columns: ["created_dn_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dn_reissue_submissions_created_dn_id_fkey"
+            columns: ["created_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_dashboard"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "dn_reissue_submissions_created_dn_id_fkey"
+            columns: ["created_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "dn_reissue_submissions_created_dn_id_fkey"
+            columns: ["created_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["replaced_dn_id"]
+          },
+          {
+            foreignKeyName: "dn_reissue_submissions_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dn_reissue_submissions_original_dn_id_fkey"
+            columns: ["original_dn_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dn_reissue_submissions_original_dn_id_fkey"
+            columns: ["original_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_dashboard"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "dn_reissue_submissions_original_dn_id_fkey"
+            columns: ["original_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "dn_reissue_submissions_original_dn_id_fkey"
+            columns: ["original_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["replaced_dn_id"]
+          },
+          {
+            foreignKeyName: "dn_reissue_submissions_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
             referencedColumns: ["id"]
           },
         ]
@@ -423,6 +605,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_inventory_dashboard"
             referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "dn_workflow_log_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "dn_workflow_log_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["replaced_dn_id"]
           },
           {
             foreignKeyName: "dn_workflow_log_holder_from_fkey"
@@ -796,6 +992,20 @@ export type Database = {
             referencedColumns: ["delivery_note_id"]
           },
           {
+            foreignKeyName: "delivery_note_lines_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "delivery_note_lines_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["replaced_dn_id"]
+          },
+          {
             foreignKeyName: "delivery_note_lines_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
@@ -810,6 +1020,32 @@ export type Database = {
             referencedColumns: ["item_id"]
           },
         ]
+      }
+      v_reissue_register: {
+        Row: {
+          delivery_note_id: string | null
+          Item: string | null
+          "New DN": string | null
+          "New slip status":
+            | Database["public"]["Enums"]["dn_workflow_status"]
+            | null
+          "New SO": string | null
+          Qty: number | null
+          Reason: Database["public"]["Enums"]["dn_reissue_reason"] | null
+          Recorded: string | null
+          "Recorded by": string | null
+          Remarks: string | null
+          "Replaced DN": string | null
+          "Replaced slip arrival status":
+            | Database["public"]["Enums"]["dn_status"]
+            | null
+          "Replaced SO": string | null
+          replaced_dn_id: string | null
+          Reported: string | null
+          "Reported by": string | null
+          UOM: string | null
+        }
+        Relationships: []
       }
       v_slip_custody: {
         Row: {
@@ -862,6 +1098,20 @@ export type Database = {
             referencedColumns: ["delivery_note_id"]
           },
           {
+            foreignKeyName: "dn_workflow_log_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "dn_workflow_log_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["replaced_dn_id"]
+          },
+          {
             foreignKeyName: "dn_workflow_log_holder_from_fkey"
             columns: ["from_id"]
             isOneToOne: false
@@ -907,6 +1157,76 @@ export type Database = {
           pdf_sha256: string | null
           pdf_storage_path: string | null
           print_date: string | null
+          reissue_note: string | null
+          reissue_reason:
+            | Database["public"]["Enums"]["dn_reissue_reason"]
+            | null
+          replaces_dn_id: string | null
+          salesman: string | null
+          sent_at: string | null
+          sent_by: string | null
+          ship_from: string | null
+          ship_to: string | null
+          shipping_reference: string | null
+          so_number: string
+          so_override_at: string | null
+          so_override_by: string | null
+          so_override_reason: string | null
+          source_file_type: string | null
+          stamped_pdf_path: string | null
+          status: Database["public"]["Enums"]["dn_status"]
+          supplier_id: string
+          updated_at: string
+          upload_batch_id: string | null
+          workflow_status: Database["public"]["Enums"]["dn_workflow_status"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "delivery_notes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      approve_reissue: {
+        Args: {
+          p_dn_number: string
+          p_note?: string
+          p_pdf_qty?: number
+          p_so_number: string
+          p_submission_id: string
+        }
+        Returns: {
+          acknowledged_at: string | null
+          arrived_at: string | null
+          assigned_driver_id: string | null
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          customer_name: string | null
+          customer_number: string | null
+          dn_number: string
+          driver_sent_at: string | null
+          driver_sent_by: string | null
+          extraction_confidence: number | null
+          extraction_method:
+            | Database["public"]["Enums"]["extraction_method"]
+            | null
+          holder_id: string | null
+          holder_role: Database["public"]["Enums"]["user_role"] | null
+          holder_since: string | null
+          id: string
+          needs_review_fields: string[]
+          notes: string | null
+          order_date: string | null
+          pdf_file_name: string | null
+          pdf_sha256: string | null
+          pdf_storage_path: string | null
+          print_date: string | null
+          reissue_note: string | null
+          reissue_reason:
+            | Database["public"]["Enums"]["dn_reissue_reason"]
+            | null
+          replaces_dn_id: string | null
           salesman: string | null
           sent_at: string | null
           sent_by: string | null
@@ -979,6 +1299,9 @@ export type Database = {
           p_pdf_qty: number
           p_pdf_sha256?: string
           p_print_date?: string
+          p_reissue_note?: string
+          p_reissue_reason?: Database["public"]["Enums"]["dn_reissue_reason"]
+          p_replaces_dn_id?: string
           p_salesman?: string
           p_ship_from?: string
           p_ship_to?: string
@@ -1015,6 +1338,11 @@ export type Database = {
           pdf_sha256: string | null
           pdf_storage_path: string | null
           print_date: string | null
+          reissue_note: string | null
+          reissue_reason:
+            | Database["public"]["Enums"]["dn_reissue_reason"]
+            | null
+          replaces_dn_id: string | null
           salesman: string | null
           sent_at: string | null
           sent_by: string | null
@@ -1069,6 +1397,11 @@ export type Database = {
           pdf_sha256: string | null
           pdf_storage_path: string | null
           print_date: string | null
+          reissue_note: string | null
+          reissue_reason:
+            | Database["public"]["Enums"]["dn_reissue_reason"]
+            | null
+          replaces_dn_id: string | null
           salesman: string | null
           sent_at: string | null
           sent_by: string | null
@@ -1093,6 +1426,24 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      find_possible_originals: {
+        Args: {
+          p_customer_number?: string
+          p_item_number: string
+          p_pdf_qty: number
+          p_within_days?: number
+        }
+        Returns: {
+          dn_number: string
+          holder_name: string
+          id: string
+          item_number: string
+          pdf_qty: number
+          print_date: string
+          so_number: string
+          workflow_status: Database["public"]["Enums"]["dn_workflow_status"]
+        }[]
       }
       hand_over_delivery_note: {
         Args: { p_dn_id: string; p_note?: string; p_to_user: string }
@@ -1123,6 +1474,11 @@ export type Database = {
           pdf_sha256: string | null
           pdf_storage_path: string | null
           print_date: string | null
+          reissue_note: string | null
+          reissue_reason:
+            | Database["public"]["Enums"]["dn_reissue_reason"]
+            | null
+          replaces_dn_id: string | null
           salesman: string | null
           sent_at: string | null
           sent_by: string | null
@@ -1227,6 +1583,32 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reject_reissue: {
+        Args: { p_reason: string; p_submission_id: string }
+        Returns: {
+          created_dn_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          dn_number: string | null
+          file_path: string | null
+          file_type: string
+          id: string
+          note: string | null
+          original_dn_id: string
+          reason: Database["public"]["Enums"]["dn_reissue_reason"]
+          so_number: string | null
+          status: string
+          submitted_at: string
+          submitted_by: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "dn_reissue_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       reverse_stock_movement: {
         Args: { p_movement_id: string; p_reason: string }
         Returns: {
@@ -1290,6 +1672,40 @@ export type Database = {
         Args: { p_email: string; p_password: string }
         Returns: undefined
       }
+      submit_reissue: {
+        Args: {
+          p_dn_number?: string
+          p_file_path?: string
+          p_file_type?: string
+          p_note?: string
+          p_original_dn_id: string
+          p_reason: Database["public"]["Enums"]["dn_reissue_reason"]
+          p_so_number?: string
+        }
+        Returns: {
+          created_dn_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          dn_number: string | null
+          file_path: string | null
+          file_type: string
+          id: string
+          note: string | null
+          original_dn_id: string
+          reason: Database["public"]["Enums"]["dn_reissue_reason"]
+          so_number: string | null
+          status: string
+          submitted_at: string
+          submitted_by: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "dn_reissue_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       dn_discrepancy_reason:
@@ -1299,6 +1715,7 @@ export type Database = {
         | "counting_error"
         | "supplier_over_loaded"
         | "other"
+      dn_reissue_reason: "lost" | "damaged" | "supplier_correction" | "other"
       dn_status: "not_arrived" | "partial" | "arrived" | "cancelled"
       dn_workflow_status:
         | "draft"
@@ -1308,6 +1725,7 @@ export type Database = {
         | "sent_to_driver"
         | "rejected"
         | "received"
+        | "replaced"
       extraction_method: "pdf_text" | "vision" | "manual"
       movement_direction: "IN" | "OUT"
       movement_type:
@@ -1465,6 +1883,7 @@ export const Constants = {
         "supplier_over_loaded",
         "other",
       ],
+      dn_reissue_reason: ["lost", "damaged", "supplier_correction", "other"],
       dn_status: ["not_arrived", "partial", "arrived", "cancelled"],
       dn_workflow_status: [
         "draft",
@@ -1474,6 +1893,7 @@ export const Constants = {
         "sent_to_driver",
         "rejected",
         "received",
+        "replaced",
       ],
       extraction_method: ["pdf_text", "vision", "manual"],
       movement_direction: ["IN", "OUT"],

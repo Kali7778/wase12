@@ -23,6 +23,9 @@ export const AdminSlipsView: React.FC = () => {
   // Decision D35: a repeated sales order needs an admin. The database says
   // the same thing; this only decides what the card offers.
   const canOverrideSo = can('admin', 'ceo');
+  // Decision D32: a replacement slip is recorded by an admin, the GM or a
+  // superadmin. The database refuses anybody else.
+  const canRecordReissue = can('admin', 'gm', 'ceo');
   const staging = useSlipStaging({ canOverrideSo });
 
   const [batchDate, setBatchDate] = useState(today());
@@ -233,6 +236,13 @@ export const AdminSlipsView: React.FC = () => {
                 {staging.soConflictCount > 0 && (
                   <Stat label="sales order in use" value={staging.soConflictCount} tone="amber" />
                 )}
+                {staging.unansweredReissueCount > 0 && (
+                  <Stat
+                    label="may be a replacement"
+                    value={staging.unansweredReissueCount}
+                    tone="amber"
+                  />
+                )}
               </div>
               <button
                 onClick={handleSave}
@@ -261,8 +271,10 @@ export const AdminSlipsView: React.FC = () => {
                   key={slip.key}
                   slip={slip}
                   canOverrideSo={canOverrideSo}
+                  canRecordReissue={canRecordReissue}
                   onEdit={staging.editField}
                   onSoReason={staging.setSoOverrideReason}
+                  onReissue={staging.setReissue}
                   onRemove={staging.remove}
                 />
               ))}
