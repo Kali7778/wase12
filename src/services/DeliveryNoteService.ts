@@ -3,6 +3,7 @@ import { DELIVERY_NOTES_BUCKET, supabase } from '../lib/supabase';
 import { toAppError } from '../lib/errors';
 import type {
   CustodyEntry,
+  DailySlipCount,
   DeliveryNote,
   PossibleOriginal,
   ReissueRegisterRow,
@@ -343,6 +344,26 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
       reportedAt: row.Reported,
       reportedBy: row['Reported by'],
       newSlipStatus: row['New slip status'] as DeliveryNote['workflowStatus'],
+    }));
+  }
+
+  /**
+   * How many slips came in, went out and were counted in, day by day.
+   *
+   * The day boundary is Jeddah's, not the server's, and the "sent on"
+   * figure belongs to whoever is asking (D36, D44).
+   */
+  async listDailyCounts(days = 7): Promise<DailySlipCount[]> {
+    const { data, error } = await this.db.rpc('daily_slip_counts', { p_days: days });
+
+    if (error) throw toAppError(error, 'Loading the daily slip counts');
+    return (data ?? []).map((row) => ({
+      day: row.day,
+      uploaded: row.uploaded,
+      sentByMe: row.sent_by_me,
+      outToDriver: row.out_to_driver,
+      received: row.received,
+      reissued: row.reissued,
     }));
   }
 

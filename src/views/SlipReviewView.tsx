@@ -72,7 +72,10 @@ export const SlipReviewView: React.FC = () => {
         // or to a driver.
         const forward = list.filter((r) => r.role !== 'gm');
         setRecipients(forward);
-        setRecipientId((current) => current || forward[0]?.id || '');
+        setRecipientId(
+          (current) =>
+            current || forward.find((r) => r.role === 'driver')?.id || forward[0]?.id || '',
+        );
       })
       .catch(() => setRecipients([]));
   }, []);
@@ -140,7 +143,7 @@ export const SlipReviewView: React.FC = () => {
     <div className="space-y-5">
       <PageHeader
         title="Slip Review"
-        description="Delivery slips handed over by the admin. Assign each one to a driver, or reject it with a reason."
+        description="Delivery slips handed over by the admin. Pass each one to a driver or to the warehouse, or reject it with a reason."
         stats={[
           { label: 'awaiting you', value: pending.length },
           { label: 'with drivers', value: decided.filter((s) => s.workflowStatus === 'sent_to_driver').length },
@@ -220,7 +223,7 @@ export const SlipReviewView: React.FC = () => {
                           loading={busyId === slip.id}
                           onClick={() => handOver(slip)}
                         >
-                          Approve &amp; send
+                          Approve &amp; hand over
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => setHanding(null)}>
                           Cancel
@@ -364,7 +367,7 @@ const SlipRow: React.FC<{
         {onAssign && (
           <>
             <Button size="sm" variant="primary" icon={Truck} onClick={onAssign} loading={busy}>
-              Send to driver
+              Hand over
             </Button>
             <Button size="sm" variant="ghost" icon={X} onClick={onReject} disabled={busy}>
               Reject

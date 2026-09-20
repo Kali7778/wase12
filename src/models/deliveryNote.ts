@@ -322,6 +322,21 @@ export interface ReissueRegisterRow {
   newSlipStatus: DnWorkflowStatus;
 }
 
+/**
+ * One day of slip movement, in Jeddah time (D44).
+ *
+ * `sentByMe` is the caller's own count: the client asked to see what each
+ * person passed on, not what the office did as a whole (D36).
+ */
+export interface DailySlipCount {
+  day: string;
+  uploaded: number;
+  sentByMe: number;
+  outToDriver: number;
+  received: number;
+  reissued: number;
+}
+
 export const CUSTODY_ACTION_LABEL: Record<CustodyAction, string> = {
   hand_over: 'Handed over',
   reassign_driver: 'Driver changed',

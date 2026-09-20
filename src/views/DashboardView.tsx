@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
+import { SlipMovementPanel } from '../components/dashboard/SlipMovementPanel';
 import { formatCurrency } from '../utils/i18n';
 import {
   Truck,
@@ -48,6 +50,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenNewTripModal
 
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
 
+  // The slip figures are read from the database; everything below them on
+  // this screen is still the old demo content.
+  const { can } = useAuth();
+  const seesSlipMovement = can('ceo', 'gm', 'manager', 'admin', 'dispatcher');
+
   // Compute key KPI metrics
   const activeTrips = trips.filter((t) => t.status === 'in_transit');
   const deliveredTrips = trips.filter((t) => t.status === 'delivered');
@@ -68,6 +75,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenNewTripModal
 
   return (
     <div id="dashboard-view" className="space-y-6">
+      {seesSlipMovement && <SlipMovementPanel />}
+
       {/* Top Banner & Quick Controls */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 rounded-3xl text-white shadow-xl border border-slate-800">
         <div>

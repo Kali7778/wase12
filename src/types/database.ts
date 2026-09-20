@@ -1124,10 +1124,6 @@ export type Database = {
     Functions: {
       _t_as: { Args: { p: string }; Returns: undefined }
       _t_ok: { Args: { cond: boolean; label: string }; Returns: undefined }
-      _t_refused: {
-        Args: { fragment: string; label: string; sql: string }
-        Returns: undefined
-      }
       acknowledge_delivery_note: {
         Args: { p_dn_id: string }
         Returns: {
@@ -1367,6 +1363,17 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      daily_slip_counts: {
+        Args: { p_days?: number }
+        Returns: {
+          day: string
+          out_to_driver: number
+          received: number
+          reissued: number
+          sent_by_me: number
+          uploaded: number
+        }[]
       }
       decide_dn: {
         Args: { p_approve: boolean; p_dn_id: string; p_note?: string }
