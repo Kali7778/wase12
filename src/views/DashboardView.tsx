@@ -2,6 +2,7 @@ import React from 'react';
 import {
   ArrowRight,
   Copy,
+  Truck,
   FileStack,
   History,
   PackageCheck,
@@ -62,6 +63,13 @@ const SHORTCUTS: Shortcut[] = [
     description: 'Slips the warehouse and the drivers have asked for.',
     icon: Send,
     roles: ['admin', 'manager', 'gm', 'ceo', 'warehouse', 'driver'],
+  },
+  {
+    id: 'talab',
+    label: 'Customer Orders',
+    description: 'Loads going straight to a customer, and what is still open.',
+    icon: Truck,
+    roles: ['admin', 'manager', 'gm', 'ceo'],
   },
   {
     id: 'inventory',

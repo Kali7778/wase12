@@ -2,7 +2,12 @@ import { useCallback, useRef, useState } from 'react';
 import { detectFileType, extractPdfText, hashFile, renderPdfThumbnail, type SourceFileType } from '../utils/dnExtractor';
 import { emptyExtraction, parseDeliveryNote, revalidate, type ExtractedDn } from '../utils/dnParser';
 import { deliveryNoteService, uploadBatchService } from '../services/DeliveryNoteService';
-import type { DuplicateMatch, PossibleOriginal, ReissueReason } from '../models/deliveryNote';
+import type {
+  DnPurpose,
+  DuplicateMatch,
+  PossibleOriginal,
+  ReissueReason,
+} from '../models/deliveryNote';
 
 export type StagedStatus = 'parsing' | 'ready' | 'saving' | 'saved' | 'error';
 
@@ -47,6 +52,15 @@ export interface StagedSlip {
    */
   possibleOriginals: PossibleOriginal[];
   reissue: ReissueAnswer;
+  /**
+   * `stock` — the ordinary case, the load comes to the warehouse.
+   * `talab` — it goes straight from the supplier to a customer (D49), so it
+   * never becomes stock and is never counted in. That choice belongs on the
+   * individual slip, not on the batch: one morning's post can hold both.
+   */
+  purpose: DnPurpose;
+  /** Required when `purpose` is `talab`; ignored otherwise. */
+  customerId: string;
   status: StagedStatus;
   error?: string;
   /** Id of the saved delivery note, once it has been written. */
@@ -73,7 +87,10 @@ const isSaveable = (s: StagedSlip, canOverrideSo: boolean) =>
   // A slip the system suspects is a replacement cannot be filed until
   // somebody says one way or the other.
   (s.possibleOriginals.length === 0 || s.reissue.answered) &&
-  (!s.reissue.isReplacement || reissueComplete(s.reissue));
+  (!s.reissue.isReplacement || reissueComplete(s.reissue)) &&
+  // A customer order without a customer is meaningless, and the database
+  // refuses it, so the card asks before the batch is sent.
+  (s.purpose === 'stock' || s.customerId !== '');
 
 /**
  * Staging area for a bulk slip upload.
@@ -123,6 +140,8 @@ export function useSlipStaging({ canOverrideSo }: { canOverrideSo: boolean }) {
           soOverrideReason: '',
           possibleOriginals: [],
           reissue: NO_REISSUE,
+          purpose: 'stock',
+          customerId: '',
           status: 'parsing',
         });
       }
@@ -251,6 +270,18 @@ export function useSlipStaging({ canOverrideSo }: { canOverrideSo: boolean }) {
     [],
   );
 
+  /** Marks a slip as a customer order, or puts it back to warehouse stock. */
+  const setPurpose = useCallback(
+    (key: string, purpose: DnPurpose) =>
+      update(key, { purpose, ...(purpose === 'stock' ? { customerId: '' } : {}) }),
+    [update],
+  );
+
+  const setCustomer = useCallback(
+    (key: string, customerId: string) => update(key, { customerId }),
+    [update],
+  );
+
   /** Records an admin's reason for accepting a sales order already in use. */
   const setSoOverrideReason = useCallback(
     (key: string, reason: string) => update(key, { soOverrideReason: reason }),
@@ -336,6 +367,8 @@ export function useSlipStaging({ canOverrideSo }: { canOverrideSo: boolean }) {
                   ? (slip.reissue.reason as ReissueReason)
                   : undefined,
                 reissueNote: slip.reissue.isReplacement ? slip.reissue.note : undefined,
+                purpose: slip.purpose,
+                customerId: slip.purpose === 'talab' ? slip.customerId : undefined,
               },
             );
 
@@ -364,6 +397,9 @@ export function useSlipStaging({ canOverrideSo }: { canOverrideSo: boolean }) {
   const reviewCount = slips.filter((s) => s.status === 'ready' && s.data.needsReview.length > 0).length;
   const duplicateCount = slips.filter((s) => s.duplicate).length;
   const soConflictCount = slips.filter((s) => !s.duplicate && s.soConflict).length;
+  const talabWithoutCustomerCount = slips.filter(
+    (s) => s.purpose === 'talab' && s.customerId === '',
+  ).length;
   const unansweredReissueCount = slips.filter(
     (s) => s.possibleOriginals.length > 0 && !s.reissue.answered,
   ).length;
@@ -375,6 +411,8 @@ export function useSlipStaging({ canOverrideSo }: { canOverrideSo: boolean }) {
     editField,
     setReissue,
     setSoOverrideReason,
+    setPurpose,
+    setCustomer,
     remove,
     clearSaved,
     saveAll,
@@ -383,5 +421,6 @@ export function useSlipStaging({ canOverrideSo }: { canOverrideSo: boolean }) {
     duplicateCount,
     soConflictCount,
     unansweredReissueCount,
+    talabWithoutCustomerCount,
   };
 }

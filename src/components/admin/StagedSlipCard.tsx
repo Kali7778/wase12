@@ -11,7 +11,13 @@ import {
 
 const REISSUE_REASONS: ReissueReason[] = ['lost', 'damaged', 'supplier_correction', 'other'];
 import type { ReissueAnswer, StagedSlip } from '../../hooks/useSlipStaging';
-import { REISSUE_REASON_LABEL, type ReissueReason } from '../../models/deliveryNote';
+import {
+  REISSUE_REASON_LABEL,
+  TERMS_LABEL,
+  type Customer,
+  type DnPurpose,
+  type ReissueReason,
+} from '../../models/deliveryNote';
 import { FIELD_LABEL, type ExtractedDn } from '../../utils/dnParser';
 
 interface StagedSlipCardProps {
@@ -20,6 +26,10 @@ interface StagedSlipCardProps {
   canOverrideSo: boolean;
   /** Admin, GM or superadmin: may record this slip as a replacement (D32). */
   canRecordReissue: boolean;
+  /** Customers to choose from when the load goes straight to one (D49). */
+  customers: Customer[];
+  onPurpose: (key: string, purpose: DnPurpose) => void;
+  onCustomer: (key: string, customerId: string) => void;
   onEdit: (key: string, field: keyof ExtractedDn, value: string) => void;
   onSoReason: (key: string, reason: string) => void;
   onReissue: (key: string, patch: Partial<ReissueAnswer>) => void;
@@ -46,6 +56,9 @@ export const StagedSlipCard: React.FC<StagedSlipCardProps> = ({
   slip,
   canOverrideSo,
   canRecordReissue,
+  customers,
+  onPurpose,
+  onCustomer,
   onEdit,
   onSoReason,
   onReissue,
@@ -62,8 +75,15 @@ export const StagedSlipCard: React.FC<StagedSlipCardProps> = ({
     (reissue.originalId === '' ||
       reissue.reason === '' ||
       (reissue.reason === 'other' && reissue.note.trim() === ''));
+  const talab = slip.purpose === 'talab';
+  const customerMissing = talab && slip.customerId === '';
   const blocked =
-    Boolean(duplicate) || needsReview || soUnresolved || reissueUnanswered || reissueIncomplete;
+    Boolean(duplicate) ||
+    needsReview ||
+    soUnresolved ||
+    reissueUnanswered ||
+    reissueIncomplete ||
+    customerMissing;
   const editable = status !== 'saving' && status !== 'saved';
 
   return (
@@ -267,6 +287,57 @@ export const StagedSlipCard: React.FC<StagedSlipCardProps> = ({
             {slip.error}
           </Notice>
         )}
+
+        <div
+          className={`p-2 rounded-lg border space-y-2 ${
+            talab
+              ? 'border-sky-300 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/40'
+              : 'border-slate-200 dark:border-slate-700'
+          }`}
+        >
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={talab}
+              disabled={!editable}
+              onChange={(e) => onPurpose(slip.key, e.target.checked ? 'talab' : 'stock')}
+              className="mt-0.5 w-3.5 h-3.5 rounded cursor-pointer accent-sky-600"
+            />
+            <span className="text-[11px] leading-snug text-slate-700 dark:text-slate-300">
+              <span className="font-semibold">This load goes straight to a customer</span>
+              <span className="block text-slate-400 dark:text-slate-500">
+                It never reaches the warehouse, so it is not counted in and stays out of the
+                inventory register.
+              </span>
+            </span>
+          </label>
+
+          {talab && (
+            <label className="block">
+              <span className="block text-[10px] font-semibold uppercase tracking-wide mb-0.5 text-sky-700 dark:text-sky-400">
+                Which customer? *
+              </span>
+              <select
+                value={slip.customerId}
+                disabled={!editable}
+                onChange={(e) => onCustomer(slip.key, e.target.value)}
+                className="w-full px-2 py-1 rounded-lg border border-sky-300 dark:border-sky-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 cursor-pointer disabled:opacity-60"
+              >
+                <option value="">Choose the customer</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {`${c.name} · ${TERMS_LABEL[c.terms]}`}
+                  </option>
+                ))}
+              </select>
+              {customers.length === 0 && (
+                <span className="block mt-1 text-[11px] text-sky-700 dark:text-sky-400">
+                  No customers on the list yet. Add one on the Customers screen first.
+                </span>
+              )}
+            </label>
+          )}
+        </div>
 
         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
           {CARD_FIELDS.map(({ field, wide }) => {

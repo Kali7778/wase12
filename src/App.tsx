@@ -19,6 +19,7 @@ import { StockOutView } from './views/StockOutView';
 import { InventoryView } from './views/InventoryView';
 import { ProductsView } from './views/ProductsView';
 import { CustodyView } from './views/CustodyView';
+import { TalabOrdersView } from './views/TalabOrdersView';
 import { ReissuesView } from './views/ReissuesView';
 import { RequestsView } from './views/RequestsView';
 import { DashboardView } from './views/DashboardView';
@@ -29,7 +30,7 @@ import { DriversFleetView } from './views/DriversFleetView';
 import { SupplierInventoryView } from './views/SupplierInventoryView';
 import { WarehouseView } from './views/WarehouseView';
 import { CustomerInvoicesView } from './views/CustomerInvoicesView';
-import { CustomersView } from './views/CustomersView';
+import { CustomerListView } from './views/CustomerListView';
 import { ExpensesView } from './views/ExpensesView';
 import { InvoicesView } from './views/InvoicesView';
 import { LiveGpsView } from './views/LiveGpsView';
@@ -76,6 +77,8 @@ const MainLayout: React.FC = () => {
         return <ProductsView />;
       case 'custody':
         return <CustodyView />;
+      case 'talab':
+        return <TalabOrdersView />;
       case 'reissues':
         return <ReissuesView />;
       case 'requests':
@@ -97,7 +100,7 @@ const MainLayout: React.FC = () => {
       case 'sales':
         return <CustomerInvoicesView />;
       case 'customers':
-        return <CustomersView />;
+        return <CustomerListView />;
       case 'expenses':
         return <ExpensesView />;
       case 'invoices':

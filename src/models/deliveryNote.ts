@@ -142,6 +142,7 @@ export const WORKFLOW_LABEL: Record<DnWorkflowStatus, string> = {
   rejected: 'Rejected',
   received: 'Received',
   replaced: 'Replaced',
+  delivered: 'Delivered to customer',
 };
 
 /** Badge colour for each workflow status, so every screen agrees. */
@@ -157,6 +158,7 @@ export const WORKFLOW_TONE: Record<
   rejected: 'risk',
   received: 'ok',
   replaced: 'neutral',
+  delivered: 'ok',
 };
 
 /**
@@ -246,7 +248,8 @@ export type CustodyAction =
   | 'approve'
   | 'reject'
   | 'receive'
-  | 'replace';
+  | 'replace'
+  | 'deliver';
 
 export interface CustodyEntry {
   id: string;
@@ -404,4 +407,66 @@ export const CUSTODY_ACTION_LABEL: Record<CustodyAction, string> = {
   reject: 'Rejected',
   receive: 'Counted in',
   replace: 'Replaced',
+  deliver: 'Delivered to customer',
 };
+
+/**
+ * What a slip is for (decision D49).
+ *
+ * `stock` is the ordinary case: the load comes to the warehouse and is
+ * counted in. `talab` is a customer order — the client buys it from the
+ * supplier in their own name, but the truck goes straight from the plant to
+ * the customer's yard. The paperwork is identical; the goods never touch our
+ * shelves, so such a slip is never stock and never appears in the register.
+ */
+export type DnPurpose = Enums<'dn_purpose'>;
+
+export const PURPOSE_LABEL: Record<DnPurpose, string> = {
+  stock: 'For the warehouse',
+  talab: 'Straight to a customer',
+};
+
+/** How a customer settles: on the spot, or on a weekly account (D51). */
+export type CustomerTerms = Enums<'customer_terms'>;
+
+export const TERMS_LABEL: Record<CustomerTerms, string> = {
+  cash: 'Pays on the spot',
+  weekly: 'Weekly account',
+};
+
+export interface Customer {
+  id: string;
+  name: string;
+  nameAr: string | null;
+  phone: string | null;
+  terms: CustomerTerms;
+  vatNumber: string | null;
+  address: string | null;
+  notes: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+/** A customer order, as `v_talab_orders` reports it. */
+export interface TalabOrder {
+  deliveryNoteId: string;
+  dnNumber: string;
+  soNumber: string;
+  createdAt: string;
+  printDate: string | null;
+  workflowStatus: DnWorkflowStatus;
+  customerId: string;
+  customerName: string;
+  customerNameAr: string | null;
+  customerPhone: string | null;
+  customerTerms: CustomerTerms;
+  itemNumber: string | null;
+  itemDescription: string | null;
+  uom: string | null;
+  pdfQty: number;
+  holderName: string | null;
+  holderRole: UserRole | null;
+  deliveredAt: string | null;
+  deliveredByName: string | null;
+  pdfStoragePath: string | null;
+}

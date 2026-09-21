@@ -110,6 +110,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
           roles: ['ceo', 'gm', 'manager', 'admin', 'warehouse', 'driver'],
         },
         {
+          id: 'talab',
+          label: 'Customer Orders',
+          icon: Truck,
+          // Slips whose goods go straight to a customer and never become
+          // stock (D49). The office files them and closes them.
+          roles: ['ceo', 'gm', 'manager', 'admin'],
+        },
+        {
           id: 'receiving',
           label: 'Receiving',
           icon: PackageCheck,
@@ -174,7 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
     {
       heading: 'Commercial',
       items: [
-        { id: 'customers', ready: false, label: 'Customers', icon: Building2, roles: COMMERCIAL },
+        { id: 'customers', label: 'Customers', icon: Building2, roles: COMMERCIAL },
         { id: 'invoices', ready: false, label: 'Invoices', icon: ShieldCheck, roles: COMMERCIAL },
         { id: 'expenses', ready: false, label: 'Expenses', icon: DollarSign, roles: COMMERCIAL },
         { id: 'drivers', ready: false, label: 'Drivers & Fleet', icon: Users, roles: ['ceo', 'gm', 'manager', 'dispatcher'] },

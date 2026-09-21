@@ -1,12 +1,3 @@
-/**
- * Supabase database types — GENERATED FILE, do not edit by hand.
- *
- * Regenerate with:
- *   npx supabase gen types typescript --project-id kbzyzyfusnysrpgoabku
- *
- * Regenerate this file whenever the database schema changes.
- */
-
 export type Json =
   | string
   | number
@@ -16,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -48,6 +34,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      customers: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          name_ar: string | null
+          notes: string | null
+          phone: string | null
+          terms: Database["public"]["Enums"]["customer_terms"]
+          vat_number: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          name_ar?: string | null
+          notes?: string | null
+          phone?: string | null
+          terms?: Database["public"]["Enums"]["customer_terms"]
+          vat_number?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          name_ar?: string | null
+          notes?: string | null
+          phone?: string | null
+          terms?: Database["public"]["Enums"]["customer_terms"]
+          vat_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delivery_note_lines: {
         Row: {
           arrival_photo_path: string | null
@@ -145,6 +181,13 @@ export type Database = {
             referencedColumns: ["replaced_dn_id"]
           },
           {
+            foreignKeyName: "delivery_note_lines_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_talab_orders"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
             foreignKeyName: "delivery_note_lines_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
@@ -175,8 +218,11 @@ export type Database = {
           assigned_to: string | null
           created_at: string
           created_by: string | null
+          customer_id: string | null
           customer_name: string | null
           customer_number: string | null
+          delivered_at: string | null
+          delivered_by: string | null
           dn_number: string
           driver_sent_at: string | null
           driver_sent_by: string | null
@@ -195,6 +241,7 @@ export type Database = {
           pdf_sha256: string | null
           pdf_storage_path: string | null
           print_date: string | null
+          purpose: Database["public"]["Enums"]["dn_purpose"]
           reissue_note: string | null
           reissue_reason:
             | Database["public"]["Enums"]["dn_reissue_reason"]
@@ -225,8 +272,11 @@ export type Database = {
           assigned_to?: string | null
           created_at?: string
           created_by?: string | null
+          customer_id?: string | null
           customer_name?: string | null
           customer_number?: string | null
+          delivered_at?: string | null
+          delivered_by?: string | null
           dn_number: string
           driver_sent_at?: string | null
           driver_sent_by?: string | null
@@ -245,6 +295,7 @@ export type Database = {
           pdf_sha256?: string | null
           pdf_storage_path?: string | null
           print_date?: string | null
+          purpose?: Database["public"]["Enums"]["dn_purpose"]
           reissue_note?: string | null
           reissue_reason?:
             | Database["public"]["Enums"]["dn_reissue_reason"]
@@ -275,8 +326,11 @@ export type Database = {
           assigned_to?: string | null
           created_at?: string
           created_by?: string | null
+          customer_id?: string | null
           customer_name?: string | null
           customer_number?: string | null
+          delivered_at?: string | null
+          delivered_by?: string | null
           dn_number?: string
           driver_sent_at?: string | null
           driver_sent_by?: string | null
@@ -295,6 +349,7 @@ export type Database = {
           pdf_sha256?: string | null
           pdf_storage_path?: string | null
           print_date?: string | null
+          purpose?: Database["public"]["Enums"]["dn_purpose"]
           reissue_note?: string | null
           reissue_reason?:
             | Database["public"]["Enums"]["dn_reissue_reason"]
@@ -341,6 +396,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "delivery_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "v_talab_orders"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_delivered_by_fkey"
+            columns: ["delivered_by"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "delivery_notes_driver_sent_by_fkey"
             columns: ["driver_sent_by"]
             isOneToOne: false
@@ -381,6 +457,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_reissue_register"
             referencedColumns: ["replaced_dn_id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_replaces_dn_id_fkey"
+            columns: ["replaces_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_talab_orders"
+            referencedColumns: ["delivery_note_id"]
           },
           {
             foreignKeyName: "delivery_notes_sent_by_fkey"
@@ -494,6 +577,13 @@ export type Database = {
             referencedColumns: ["replaced_dn_id"]
           },
           {
+            foreignKeyName: "dn_reissue_submissions_created_dn_id_fkey"
+            columns: ["created_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_talab_orders"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
             foreignKeyName: "dn_reissue_submissions_decided_by_fkey"
             columns: ["decided_by"]
             isOneToOne: false
@@ -527,6 +617,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_reissue_register"
             referencedColumns: ["replaced_dn_id"]
+          },
+          {
+            foreignKeyName: "dn_reissue_submissions_original_dn_id_fkey"
+            columns: ["original_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_talab_orders"
+            referencedColumns: ["delivery_note_id"]
           },
           {
             foreignKeyName: "dn_reissue_submissions_submitted_by_fkey"
@@ -619,6 +716,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_reissue_register"
             referencedColumns: ["replaced_dn_id"]
+          },
+          {
+            foreignKeyName: "dn_workflow_log_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_talab_orders"
+            referencedColumns: ["delivery_note_id"]
           },
           {
             foreignKeyName: "dn_workflow_log_holder_from_fkey"
@@ -748,6 +852,13 @@ export type Database = {
             referencedColumns: ["replaced_dn_id"]
           },
           {
+            foreignKeyName: "slip_requests_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_talab_orders"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
             foreignKeyName: "slip_requests_fulfilled_dn_id_fkey"
             columns: ["fulfilled_dn_id"]
             isOneToOne: false
@@ -774,6 +885,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_reissue_register"
             referencedColumns: ["replaced_dn_id"]
+          },
+          {
+            foreignKeyName: "slip_requests_fulfilled_dn_id_fkey"
+            columns: ["fulfilled_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_talab_orders"
+            referencedColumns: ["delivery_note_id"]
           },
           {
             foreignKeyName: "slip_requests_requested_by_fkey"
@@ -1125,6 +1243,13 @@ export type Database = {
             referencedColumns: ["replaced_dn_id"]
           },
           {
+            foreignKeyName: "delivery_note_lines_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_talab_orders"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
             foreignKeyName: "delivery_note_lines_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
@@ -1231,6 +1356,13 @@ export type Database = {
             referencedColumns: ["replaced_dn_id"]
           },
           {
+            foreignKeyName: "dn_workflow_log_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_talab_orders"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
             foreignKeyName: "dn_workflow_log_holder_from_fkey"
             columns: ["from_id"]
             isOneToOne: false
@@ -1296,6 +1428,13 @@ export type Database = {
             referencedColumns: ["replaced_dn_id"]
           },
           {
+            foreignKeyName: "slip_requests_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_talab_orders"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
             foreignKeyName: "slip_requests_fulfilled_dn_id_fkey"
             columns: ["fulfilled_dn_id"]
             isOneToOne: false
@@ -1324,6 +1463,13 @@ export type Database = {
             referencedColumns: ["replaced_dn_id"]
           },
           {
+            foreignKeyName: "slip_requests_fulfilled_dn_id_fkey"
+            columns: ["fulfilled_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_talab_orders"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
             foreignKeyName: "slip_requests_requested_by_fkey"
             columns: ["requested_by"]
             isOneToOne: false
@@ -1331,6 +1477,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v_talab_orders: {
+        Row: {
+          created_at: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_name_ar: string | null
+          customer_phone: string | null
+          customer_terms: Database["public"]["Enums"]["customer_terms"] | null
+          delivered_at: string | null
+          delivered_by_name: string | null
+          delivery_note_id: string | null
+          dn_number: string | null
+          holder_name: string | null
+          holder_role: Database["public"]["Enums"]["user_role"] | null
+          item_description: string | null
+          item_number: string | null
+          pdf_qty: number | null
+          pdf_storage_path: string | null
+          print_date: string | null
+          so_number: string | null
+          uom: string | null
+          workflow_status:
+            | Database["public"]["Enums"]["dn_workflow_status"]
+            | null
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -1349,8 +1522,11 @@ export type Database = {
           assigned_to: string | null
           created_at: string
           created_by: string | null
+          customer_id: string | null
           customer_name: string | null
           customer_number: string | null
+          delivered_at: string | null
+          delivered_by: string | null
           dn_number: string
           driver_sent_at: string | null
           driver_sent_by: string | null
@@ -1369,6 +1545,7 @@ export type Database = {
           pdf_sha256: string | null
           pdf_storage_path: string | null
           print_date: string | null
+          purpose: Database["public"]["Enums"]["dn_purpose"]
           reissue_note: string | null
           reissue_reason:
             | Database["public"]["Enums"]["dn_reissue_reason"]
@@ -1414,8 +1591,11 @@ export type Database = {
           assigned_to: string | null
           created_at: string
           created_by: string | null
+          customer_id: string | null
           customer_name: string | null
           customer_number: string | null
+          delivered_at: string | null
+          delivered_by: string | null
           dn_number: string
           driver_sent_at: string | null
           driver_sent_by: string | null
@@ -1434,6 +1614,7 @@ export type Database = {
           pdf_sha256: string | null
           pdf_storage_path: string | null
           print_date: string | null
+          purpose: Database["public"]["Enums"]["dn_purpose"]
           reissue_note: string | null
           reissue_reason:
             | Database["public"]["Enums"]["dn_reissue_reason"]
@@ -1535,6 +1716,7 @@ export type Database = {
           p_pdf_qty: number
           p_pdf_sha256?: string
           p_print_date?: string
+          p_purpose?: Database["public"]["Enums"]["dn_purpose"]
           p_reissue_note?: string
           p_reissue_reason?: Database["public"]["Enums"]["dn_reissue_reason"]
           p_replaces_dn_id?: string
@@ -1545,6 +1727,7 @@ export type Database = {
           p_so_number: string
           p_so_override_reason?: string
           p_supplier_code: string
+          p_talab_customer_id?: string
           p_uom: string
         }
         Returns: {
@@ -1554,8 +1737,11 @@ export type Database = {
           assigned_to: string | null
           created_at: string
           created_by: string | null
+          customer_id: string | null
           customer_name: string | null
           customer_number: string | null
+          delivered_at: string | null
+          delivered_by: string | null
           dn_number: string
           driver_sent_at: string | null
           driver_sent_by: string | null
@@ -1574,6 +1760,7 @@ export type Database = {
           pdf_sha256: string | null
           pdf_storage_path: string | null
           print_date: string | null
+          purpose: Database["public"]["Enums"]["dn_purpose"]
           reissue_note: string | null
           reissue_reason:
             | Database["public"]["Enums"]["dn_reissue_reason"]
@@ -1652,8 +1839,11 @@ export type Database = {
           assigned_to: string | null
           created_at: string
           created_by: string | null
+          customer_id: string | null
           customer_name: string | null
           customer_number: string | null
+          delivered_at: string | null
+          delivered_by: string | null
           dn_number: string
           driver_sent_at: string | null
           driver_sent_by: string | null
@@ -1672,6 +1862,7 @@ export type Database = {
           pdf_sha256: string | null
           pdf_storage_path: string | null
           print_date: string | null
+          purpose: Database["public"]["Enums"]["dn_purpose"]
           reissue_note: string | null
           reissue_reason:
             | Database["public"]["Enums"]["dn_reissue_reason"]
@@ -1777,8 +1968,11 @@ export type Database = {
           assigned_to: string | null
           created_at: string
           created_by: string | null
+          customer_id: string | null
           customer_name: string | null
           customer_number: string | null
+          delivered_at: string | null
+          delivered_by: string | null
           dn_number: string
           driver_sent_at: string | null
           driver_sent_by: string | null
@@ -1797,6 +1991,7 @@ export type Database = {
           pdf_sha256: string | null
           pdf_storage_path: string | null
           print_date: string | null
+          purpose: Database["public"]["Enums"]["dn_purpose"]
           reissue_note: string | null
           reissue_reason:
             | Database["public"]["Enums"]["dn_reissue_reason"]
@@ -1883,6 +2078,69 @@ export type Database = {
           id: string
           role: Database["public"]["Enums"]["user_role"]
         }[]
+      }
+      mark_talab_delivered: {
+        Args: { p_dn_id: string; p_note?: string }
+        Returns: {
+          acknowledged_at: string | null
+          arrived_at: string | null
+          assigned_driver_id: string | null
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_number: string | null
+          delivered_at: string | null
+          delivered_by: string | null
+          dn_number: string
+          driver_sent_at: string | null
+          driver_sent_by: string | null
+          extraction_confidence: number | null
+          extraction_method:
+            | Database["public"]["Enums"]["extraction_method"]
+            | null
+          holder_id: string | null
+          holder_role: Database["public"]["Enums"]["user_role"] | null
+          holder_since: string | null
+          id: string
+          needs_review_fields: string[]
+          notes: string | null
+          order_date: string | null
+          pdf_file_name: string | null
+          pdf_sha256: string | null
+          pdf_storage_path: string | null
+          print_date: string | null
+          purpose: Database["public"]["Enums"]["dn_purpose"]
+          reissue_note: string | null
+          reissue_reason:
+            | Database["public"]["Enums"]["dn_reissue_reason"]
+            | null
+          replaces_dn_id: string | null
+          salesman: string | null
+          sent_at: string | null
+          sent_by: string | null
+          ship_from: string | null
+          ship_to: string | null
+          shipping_reference: string | null
+          so_number: string
+          so_override_at: string | null
+          so_override_by: string | null
+          so_override_reason: string | null
+          source_file_type: string | null
+          stamped_pdf_path: string | null
+          status: Database["public"]["Enums"]["dn_status"]
+          supplier_id: string
+          updated_at: string
+          upload_batch_id: string | null
+          workflow_status: Database["public"]["Enums"]["dn_workflow_status"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "delivery_notes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       receive_delivery_note_line: {
         Args: {
@@ -2050,6 +2308,7 @@ export type Database = {
       }
     }
     Enums: {
+      customer_terms: "weekly" | "cash"
       dn_discrepancy_reason:
         | "supplier_short_loaded"
         | "transit_loss"
@@ -2057,6 +2316,7 @@ export type Database = {
         | "counting_error"
         | "supplier_over_loaded"
         | "other"
+      dn_purpose: "stock" | "talab"
       dn_reissue_reason: "lost" | "damaged" | "supplier_correction" | "other"
       dn_status: "not_arrived" | "partial" | "arrived" | "cancelled"
       dn_workflow_status:
@@ -2068,6 +2328,7 @@ export type Database = {
         | "rejected"
         | "received"
         | "replaced"
+        | "delivered"
       extraction_method: "pdf_text" | "vision" | "manual"
       movement_direction: "IN" | "OUT"
       movement_type:
@@ -2223,6 +2484,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      customer_terms: ["weekly", "cash"],
       dn_discrepancy_reason: [
         "supplier_short_loaded",
         "transit_loss",
@@ -2231,6 +2493,7 @@ export const Constants = {
         "supplier_over_loaded",
         "other",
       ],
+      dn_purpose: ["stock", "talab"],
       dn_reissue_reason: ["lost", "damaged", "supplier_correction", "other"],
       dn_status: ["not_arrived", "partial", "arrived", "cancelled"],
       dn_workflow_status: [
@@ -2242,6 +2505,7 @@ export const Constants = {
         "rejected",
         "received",
         "replaced",
+        "delivered",
       ],
       extraction_method: ["pdf_text", "vision", "manual"],
       movement_direction: ["IN", "OUT"],

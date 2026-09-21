@@ -14,8 +14,10 @@ import type {
   DeliveryNoteLine,
   DeliveryNoteWithLines,
   DiscrepancyReason,
+  DnPurpose,
   DnWorkflowStatus,
   DuplicateMatch,
+  TalabOrder,
   UploadBatch,
 } from '../models/deliveryNote';
 import type { Recipient, WorkflowEntry } from '../models/deliveryNote';
@@ -505,6 +507,12 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
       replacesDnId?: string;
       reissueReason?: ReissueReason;
       reissueNote?: string;
+      /**
+       * `talab` means the load goes straight from the supplier to a
+       * customer and never becomes stock (D49); it needs `customerId`.
+       */
+      purpose?: DnPurpose;
+      customerId?: string;
     },
   ): Promise<DeliveryNote> {
     const { data, error } = await this.db.rpc('create_delivery_note', {
@@ -536,6 +544,8 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
       p_replaces_dn_id: options.replacesDnId ?? undefined,
       p_reissue_reason: options.reissueReason ?? undefined,
       p_reissue_note: options.reissueNote?.trim() || undefined,
+      p_purpose: options.purpose ?? 'stock',
+      p_talab_customer_id: options.customerId ?? undefined,
     });
 
     if (error) throw toAppError(error, 'Saving the delivery note');
@@ -722,6 +732,64 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
       toName: row.to_name,
       toRole: row.to_role,
     }));
+  }
+
+  /**
+   * Customer orders — slips whose goods go straight to somebody else (D49).
+   *
+   * Only the office sees this list; the database view carries the same rule,
+   * so a warehouse keeper reading it directly gets nothing back.
+   */
+  async listTalabOrders(
+    options: { search?: string; openOnly?: boolean; limit?: number } = {},
+  ): Promise<TalabOrder[]> {
+    let query = supabase
+      .from('v_talab_orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(options.limit ?? 200);
+
+    if (options.openOnly) query = query.is('delivered_at', null);
+
+    const term = options.search?.trim();
+    if (term) query = query.or(`dn_number.ilike.%${term}%,customer_name.ilike.%${term}%`);
+
+    const { data, error } = await query;
+    if (error) throw toAppError(error, 'Loading customer orders');
+
+    return (data ?? []).map((row) => ({
+      deliveryNoteId: row.delivery_note_id as string,
+      dnNumber: row.dn_number as string,
+      soNumber: row.so_number as string,
+      createdAt: row.created_at as string,
+      printDate: row.print_date,
+      workflowStatus: row.workflow_status as TalabOrder['workflowStatus'],
+      customerId: row.customer_id as string,
+      customerName: row.customer_name as string,
+      customerNameAr: row.customer_name_ar,
+      customerPhone: row.customer_phone,
+      customerTerms: row.customer_terms as TalabOrder['customerTerms'],
+      itemNumber: row.item_number,
+      itemDescription: row.item_description,
+      uom: row.uom,
+      pdfQty: Number(row.pdf_qty ?? 0),
+      holderName: row.holder_name,
+      holderRole: row.holder_role,
+      deliveredAt: row.delivered_at,
+      deliveredByName: row.delivered_by_name,
+      pdfStoragePath: row.pdf_storage_path,
+    }));
+  }
+
+  /** The office confirms the customer has the goods. This closes the slip. */
+  async markDelivered(dnId: string, note?: string): Promise<DeliveryNote> {
+    const { data, error } = await this.db.rpc('mark_talab_delivered', {
+      p_dn_id: dnId,
+      p_note: note?.trim() || undefined,
+    });
+
+    if (error) throw toAppError(error, 'Marking the order delivered');
+    return this.toModel(data as Tables<'delivery_notes'>);
   }
 
   /** Slips currently assigned to the signed-in driver. */

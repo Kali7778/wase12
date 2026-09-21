@@ -24,6 +24,7 @@ const TONE: Record<CustodyAction, 'neutral' | 'accent' | 'ok' | 'risk' | 'info' 
   receive: 'ok',
   // A replaced sheet is not a failure, but it is not routine either.
   replace: 'warn',
+  deliver: 'ok',
 };
 
 export const CustodyView: React.FC = () => {

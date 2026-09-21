@@ -5,7 +5,13 @@ import { StagedSlipCard } from '../components/admin/StagedSlipCard';
 import { SavedSlipCard } from '../components/admin/SavedSlipCard';
 import { useSlipStaging } from '../hooks/useSlipStaging';
 import { deliveryNoteService } from '../services/DeliveryNoteService';
-import type { DeliveryNoteWithLines, Recipient, WorkflowEntry } from '../models/deliveryNote';
+import { customerService } from '../services/CustomerService';
+import type {
+  Customer,
+  DeliveryNoteWithLines,
+  Recipient,
+  WorkflowEntry,
+} from '../models/deliveryNote';
 import { HANDOVER_TARGET_LABEL, WORKFLOW_LABEL } from '../models/deliveryNote';
 import { useAuth } from '../context/AuthContext';
 
@@ -40,6 +46,8 @@ export const AdminSlipsView: React.FC = () => {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [recipientId, setRecipientId] = useState('');
   const [handovers, setHandovers] = useState<WorkflowEntry[]>([]);
+  // Needed on every card: a slip marked as a customer order has to name one.
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [everyone, setEveryone] = useState<Recipient[]>([]);
 
   const canUpload = can('admin', 'dispatcher', 'warehouse', 'manager', 'gm', 'ceo');
@@ -70,6 +78,13 @@ export const AdminSlipsView: React.FC = () => {
         setRecipientId((current) => current || list.find((r) => r.role === 'gm')?.id || list[0]?.id || '');
         setEveryone(list);
       })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    customerService
+      .listAll(false)
+      .then(setCustomers)
       .catch(() => undefined);
   }, []);
 
@@ -243,6 +258,13 @@ export const AdminSlipsView: React.FC = () => {
                     tone="amber"
                   />
                 )}
+                {staging.talabWithoutCustomerCount > 0 && (
+                  <Stat
+                    label="need a customer"
+                    value={staging.talabWithoutCustomerCount}
+                    tone="amber"
+                  />
+                )}
               </div>
               <button
                 onClick={handleSave}
@@ -272,6 +294,9 @@ export const AdminSlipsView: React.FC = () => {
                   slip={slip}
                   canOverrideSo={canOverrideSo}
                   canRecordReissue={canRecordReissue}
+                  customers={customers}
+                  onPurpose={staging.setPurpose}
+                  onCustomer={staging.setCustomer}
                   onEdit={staging.editField}
                   onSoReason={staging.setSoOverrideReason}
                   onReissue={staging.setReissue}

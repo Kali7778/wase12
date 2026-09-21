@@ -90,6 +90,7 @@ export type NavView =
   | 'custody'
   | 'reissues'
   | 'requests'
+  | 'talab'
   | 'ceoPanel'
   | 'gmPanel'
   | 'managerPanel'
