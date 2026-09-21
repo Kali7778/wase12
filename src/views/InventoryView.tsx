@@ -107,16 +107,22 @@ export const InventoryView: React.FC = () => {
   // A narrower filter can leave the current page past the end of the results.
   useEffect(() => setPage(0), [filter]);
 
+  /*
+   * The page, the row count and the totals move at different speeds.
+   *
+   * Rows change with every page. The count and the totals only change when
+   * the filter does, and both of them read the whole matching register —
+   * a third of a second each on ten years of slips. Asking for them again
+   * on every page turn was most of the wait.
+   */
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [result, totals] = await Promise.all([
-        inventoryService.listPage(filter, page, PAGE_SIZE),
-        inventoryService.summarise(filter),
-      ]);
+      const result = await inventoryService.listPage(filter, page, PAGE_SIZE, {
+        withCount: page === 0,
+      });
       setRows(result.rows);
-      setTotal(result.total);
-      setSummary(totals);
+      if (result.total !== null) setTotal(result.total);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load the inventory register');
@@ -128,6 +134,23 @@ export const InventoryView: React.FC = () => {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    let cancelled = false;
+    inventoryService
+      .summarise(filter)
+      .then((totals) => {
+        if (!cancelled) setSummary(totals);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Could not total the inventory register');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [filter]);
 
   const exportCsv = async () => {
     setExporting(true);

@@ -107,8 +107,14 @@ export interface InventoryFilter {
   toDate?: string;
 }
 
-/** A page of the register, with the total so the pager knows where it is. */
+/**
+ * A page of the register.
+ *
+ * `total` is null when the page was fetched without asking for the row
+ * count — counting a large register is not free, and the number does not
+ * change while somebody pages through it.
+ */
 export interface InventoryPage {
   rows: InventoryRow[];
-  total: number;
+  total: number | null;
 }

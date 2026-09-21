@@ -20,6 +20,7 @@ import { InventoryView } from './views/InventoryView';
 import { ProductsView } from './views/ProductsView';
 import { CustodyView } from './views/CustodyView';
 import { ReissuesView } from './views/ReissuesView';
+import { RequestsView } from './views/RequestsView';
 import { DashboardView } from './views/DashboardView';
 import { TripsView } from './views/TripsView';
 import { DispatcherView } from './views/DispatcherView';
@@ -77,8 +78,10 @@ const MainLayout: React.FC = () => {
         return <CustodyView />;
       case 'reissues':
         return <ReissuesView />;
+      case 'requests':
+        return <RequestsView />;
       case 'dashboard':
-        return <DashboardView onOpenNewTripModal={() => setShowNewTripModal(true)} />;
+        return <DashboardView />;
       case 'trips':
         return <TripsView onOpenNewTripModal={() => setShowNewTripModal(true)} />;
       case 'dispatcher':
@@ -110,7 +113,7 @@ const MainLayout: React.FC = () => {
       case 'settings':
         return <SettingsView />;
       default:
-        return <DashboardView onOpenNewTripModal={() => setShowNewTripModal(true)} />;
+        return <DashboardView />;
     }
   };
 

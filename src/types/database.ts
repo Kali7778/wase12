@@ -665,6 +665,125 @@ export type Database = {
         }
         Relationships: []
       }
+      slip_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          delivery_note_id: string | null
+          fulfilled_dn_id: string | null
+          id: string
+          message: string | null
+          request_type: Database["public"]["Enums"]["slip_request_type"]
+          requested_by: string
+          requested_by_role: Database["public"]["Enums"]["user_role"]
+          status: string
+          target: Database["public"]["Enums"]["slip_request_target"]
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          delivery_note_id?: string | null
+          fulfilled_dn_id?: string | null
+          id?: string
+          message?: string | null
+          request_type: Database["public"]["Enums"]["slip_request_type"]
+          requested_by: string
+          requested_by_role: Database["public"]["Enums"]["user_role"]
+          status?: string
+          target: Database["public"]["Enums"]["slip_request_target"]
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          delivery_note_id?: string | null
+          fulfilled_dn_id?: string | null
+          id?: string
+          message?: string | null
+          request_type?: Database["public"]["Enums"]["slip_request_type"]
+          requested_by?: string
+          requested_by_role?: Database["public"]["Enums"]["user_role"]
+          status?: string
+          target?: Database["public"]["Enums"]["slip_request_target"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "slip_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "slip_requests_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "slip_requests_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_dashboard"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "slip_requests_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "slip_requests_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["replaced_dn_id"]
+          },
+          {
+            foreignKeyName: "slip_requests_fulfilled_dn_id_fkey"
+            columns: ["fulfilled_dn_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "slip_requests_fulfilled_dn_id_fkey"
+            columns: ["fulfilled_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_dashboard"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "slip_requests_fulfilled_dn_id_fkey"
+            columns: ["fulfilled_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "slip_requests_fulfilled_dn_id_fkey"
+            columns: ["fulfilled_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["replaced_dn_id"]
+          },
+          {
+            foreignKeyName: "slip_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_movements: {
         Row: {
           created_at: string
@@ -1120,10 +1239,107 @@ export type Database = {
           },
         ]
       }
+      v_slip_requests: {
+        Row: {
+          created_at: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decided_by_name: string | null
+          decision_note: string | null
+          delivery_note_id: string | null
+          dn_number: string | null
+          fulfilled_dn_id: string | null
+          fulfilled_dn_number: string | null
+          id: string | null
+          message: string | null
+          request_type: Database["public"]["Enums"]["slip_request_type"] | null
+          requested_by: string | null
+          requested_by_name: string | null
+          requested_by_role: Database["public"]["Enums"]["user_role"] | null
+          status: string | null
+          target: Database["public"]["Enums"]["slip_request_target"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "slip_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "slip_requests_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "slip_requests_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_dashboard"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "slip_requests_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "slip_requests_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["replaced_dn_id"]
+          },
+          {
+            foreignKeyName: "slip_requests_fulfilled_dn_id_fkey"
+            columns: ["fulfilled_dn_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "slip_requests_fulfilled_dn_id_fkey"
+            columns: ["fulfilled_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_dashboard"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "slip_requests_fulfilled_dn_id_fkey"
+            columns: ["fulfilled_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "slip_requests_fulfilled_dn_id_fkey"
+            columns: ["fulfilled_dn_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["replaced_dn_id"]
+          },
+          {
+            foreignKeyName: "slip_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       _t_as: { Args: { p: string }; Returns: undefined }
       _t_ok: { Args: { cond: boolean; label: string }; Returns: undefined }
+      _t_refused: {
+        Args: { fragment: string; label: string; sql: string }
+        Returns: undefined
+      }
       acknowledge_delivery_note: {
         Args: { p_dn_id: string }
         Returns: {
@@ -1248,6 +1464,30 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      cancel_slip_request: {
+        Args: { p_request_id: string }
+        Returns: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          delivery_note_id: string | null
+          fulfilled_dn_id: string | null
+          id: string
+          message: string | null
+          request_type: Database["public"]["Enums"]["slip_request_type"]
+          requested_by: string
+          requested_by_role: Database["public"]["Enums"]["user_role"]
+          status: string
+          target: Database["public"]["Enums"]["slip_request_target"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "slip_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       check_dn_duplicates: {
         Args: {
           p_dn_numbers: string[]
@@ -1364,6 +1604,34 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_slip_request: {
+        Args: {
+          p_delivery_note_id?: string
+          p_message?: string
+          p_request_type: Database["public"]["Enums"]["slip_request_type"]
+        }
+        Returns: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          delivery_note_id: string | null
+          fulfilled_dn_id: string | null
+          id: string
+          message: string | null
+          request_type: Database["public"]["Enums"]["slip_request_type"]
+          requested_by: string
+          requested_by_role: Database["public"]["Enums"]["user_role"]
+          status: string
+          target: Database["public"]["Enums"]["slip_request_target"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "slip_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       daily_slip_counts: {
         Args: { p_days?: number }
         Returns: {
@@ -1434,6 +1702,30 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      decline_slip_request: {
+        Args: { p_reason?: string; p_request_id: string }
+        Returns: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          delivery_note_id: string | null
+          fulfilled_dn_id: string | null
+          id: string
+          message: string | null
+          request_type: Database["public"]["Enums"]["slip_request_type"]
+          requested_by: string
+          requested_by_role: Database["public"]["Enums"]["user_role"]
+          status: string
+          target: Database["public"]["Enums"]["slip_request_target"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "slip_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       find_possible_originals: {
         Args: {
           p_customer_number?: string
@@ -1451,6 +1743,30 @@ export type Database = {
           so_number: string
           workflow_status: Database["public"]["Enums"]["dn_workflow_status"]
         }[]
+      }
+      fulfil_slip_request: {
+        Args: { p_dn_id?: string; p_note?: string; p_request_id: string }
+        Returns: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          delivery_note_id: string | null
+          fulfilled_dn_id: string | null
+          id: string
+          message: string | null
+          request_type: Database["public"]["Enums"]["slip_request_type"]
+          requested_by: string
+          requested_by_role: Database["public"]["Enums"]["user_role"]
+          status: string
+          target: Database["public"]["Enums"]["slip_request_target"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "slip_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       hand_over_delivery_note: {
         Args: { p_dn_id: string; p_note?: string; p_to_user: string }
@@ -1510,6 +1826,23 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      inventory_totals: {
+        Args: {
+          p_discrepancies_only?: boolean
+          p_from?: string
+          p_search?: string
+          p_status?: string
+          p_to?: string
+        }
+        Returns: {
+          arrived_qty: number
+          balance_qty: number
+          discrepancies: number
+          missing_qty: number
+          notes: number
+          pdf_qty: number
+        }[]
       }
       issue_stock: {
         Args: {
@@ -1679,6 +2012,8 @@ export type Database = {
         Args: { p_email: string; p_password: string }
         Returns: undefined
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       submit_reissue: {
         Args: {
           p_dn_number?: string
@@ -1743,6 +2078,12 @@ export type Database = {
         | "transfer_in"
         | "adjustment"
         | "reversal"
+      slip_request_target: "office" | "warehouse"
+      slip_request_type:
+        | "slip_for_delivery"
+        | "lost_slip"
+        | "damaged_slip"
+        | "other"
       user_role:
         | "ceo"
         | "gm"
@@ -1912,6 +2253,13 @@ export const Constants = {
         "transfer_in",
         "adjustment",
         "reversal",
+      ],
+      slip_request_target: ["office", "warehouse"],
+      slip_request_type: [
+        "slip_for_delivery",
+        "lost_slip",
+        "damaged_slip",
+        "other",
       ],
       user_role: [
         "ceo",

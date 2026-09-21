@@ -5,6 +5,8 @@ export type DnWorkflowStatus = Enums<'dn_workflow_status'>;
 export type ExtractionMethod = Enums<'extraction_method'>;
 export type DiscrepancyReason = Enums<'dn_discrepancy_reason'>;
 export type ReissueReason = Enums<'dn_reissue_reason'>;
+export type SlipRequestType = Enums<'slip_request_type'>;
+export type SlipRequestTarget = Enums<'slip_request_target'>;
 
 /** A day's intake of slips — "20 slips arrived today" is one batch. */
 export interface UploadBatch extends AuditedRecord {
@@ -336,6 +338,63 @@ export interface DailySlipCount {
   received: number;
   reissued: number;
 }
+
+/**
+ * Somebody asking for a slip (D31, D40, D41).
+ *
+ * The warehouse asks the office — the admin and the GM both see it and
+ * either can answer. A driver asks the warehouse.
+ */
+export interface SlipRequest {
+  id: string;
+  createdAt: string;
+  requestType: SlipRequestType;
+  message: string | null;
+  status: 'pending' | 'fulfilled' | 'declined' | 'cancelled';
+  target: SlipRequestTarget;
+  deliveryNoteId: string | null;
+  dnNumber: string | null;
+  fulfilledDnId: string | null;
+  fulfilledDnNumber: string | null;
+  requestedBy: string;
+  requestedByName: string | null;
+  requestedByRole: UserRole;
+  decidedBy: string | null;
+  decidedByName: string | null;
+  decidedAt: string | null;
+  decisionNote: string | null;
+}
+
+export const REQUEST_TYPE_LABEL: Record<SlipRequestType, string> = {
+  slip_for_delivery: 'Slip for a delivery',
+  lost_slip: 'Lost slip',
+  damaged_slip: 'Damaged slip',
+  other: 'Other',
+};
+
+export const REQUEST_TYPES: SlipRequestType[] = [
+  'slip_for_delivery',
+  'lost_slip',
+  'damaged_slip',
+  'other',
+];
+
+export const REQUEST_STATUS_LABEL: Record<SlipRequest['status'], string> = {
+  pending: 'Waiting',
+  fulfilled: 'Sent',
+  declined: 'Declined',
+  cancelled: 'Withdrawn',
+};
+
+export const REQUEST_STATUS_TONE: Record<
+  SlipRequest['status'],
+  'neutral' | 'accent' | 'ok' | 'risk' | 'warn'
+> = {
+  pending: 'warn',
+  fulfilled: 'ok',
+  declined: 'risk',
+  cancelled: 'neutral',
+};
 
 export const CUSTODY_ACTION_LABEL: Record<CustodyAction, string> = {
   hand_over: 'Handed over',

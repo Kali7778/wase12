@@ -5,6 +5,8 @@ import type {
   CustodyEntry,
   DailySlipCount,
   DeliveryNote,
+  SlipRequest,
+  SlipRequestType,
   PossibleOriginal,
   ReissueRegisterRow,
   ReissueSubmission,
@@ -365,6 +367,104 @@ class DeliveryNoteServiceImpl extends BaseService<Tables<'delivery_notes'>, Deli
       received: row.received,
       reissued: row.reissued,
     }));
+  }
+
+  /** One delivery note by its printed number, for the request forms. */
+  async findByDn(dnNumber: string): Promise<DeliveryNote | null> {
+    const { data, error } = await supabase
+      .from('delivery_notes')
+      .select('*')
+      .eq('dn_number', dnNumber.trim())
+      .maybeSingle();
+
+    if (error) throw toAppError(error, 'Looking up the delivery note');
+    return data ? this.toModel(data as Tables<'delivery_notes'>) : null;
+  }
+
+  /**
+   * Asks for a slip (D31).
+   *
+   * Who it goes to follows from who is asking: the warehouse asks the
+   * office, a driver asks the warehouse. The database decides that, not
+   * the screen.
+   */
+  async createRequest(input: {
+    requestType: SlipRequestType;
+    message?: string;
+    deliveryNoteId?: string;
+  }): Promise<void> {
+    const { error } = await this.db.rpc('create_slip_request', {
+      p_request_type: input.requestType,
+      p_message: input.message?.trim() || undefined,
+      p_delivery_note_id: input.deliveryNoteId ?? undefined,
+    });
+
+    if (error) throw toAppError(error, 'Asking for the slip');
+  }
+
+  /** Requests you asked for, and requests addressed to you. */
+  async listRequests(limit = 100): Promise<SlipRequest[]> {
+    const { data, error } = await supabase
+      .from('v_slip_requests')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw toAppError(error, 'Loading the requests');
+
+    return (data ?? []).map((row) => ({
+      id: row.id as string,
+      createdAt: row.created_at as string,
+      requestType: row.request_type as SlipRequestType,
+      message: row.message,
+      status: row.status as SlipRequest['status'],
+      target: row.target as SlipRequest['target'],
+      deliveryNoteId: row.delivery_note_id,
+      dnNumber: row.dn_number,
+      fulfilledDnId: row.fulfilled_dn_id,
+      fulfilledDnNumber: row.fulfilled_dn_number,
+      requestedBy: row.requested_by as string,
+      requestedByName: row.requested_by_name,
+      requestedByRole: row.requested_by_role as SlipRequest['requestedByRole'],
+      decidedBy: row.decided_by,
+      decidedByName: row.decided_by_name,
+      decidedAt: row.decided_at,
+      decisionNote: row.decision_note,
+    }));
+  }
+
+  /**
+   * Answers a request, handing a slip over in the same step when there is
+   * one to hand over. The handover goes through the usual rules.
+   */
+  async fulfilRequest(input: {
+    requestId: string;
+    deliveryNoteId?: string;
+    note?: string;
+  }): Promise<void> {
+    const { error } = await this.db.rpc('fulfil_slip_request', {
+      p_request_id: input.requestId,
+      p_dn_id: input.deliveryNoteId ?? undefined,
+      p_note: input.note?.trim() || undefined,
+    });
+
+    if (error) throw toAppError(error, 'Answering the request');
+  }
+
+  /** Turns a request down. A reason is welcome but not required (D31). */
+  async declineRequest(requestId: string, reason?: string): Promise<void> {
+    const { error } = await this.db.rpc('decline_slip_request', {
+      p_request_id: requestId,
+      p_reason: reason?.trim() || undefined,
+    });
+
+    if (error) throw toAppError(error, 'Turning down the request');
+  }
+
+  /** Withdraws your own request. */
+  async cancelRequest(requestId: string): Promise<void> {
+    const { error } = await this.db.rpc('cancel_slip_request', { p_request_id: requestId });
+    if (error) throw toAppError(error, 'Withdrawing the request');
   }
 
   /** Uploads the source file to the private bucket and returns its path. */

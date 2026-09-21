@@ -17,6 +17,7 @@ import {
   PackagePlus,
   Route,
   ScrollText,
+  Send,
   Settings,
   ShieldCheck,
   Truck,
@@ -40,6 +41,17 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   /** Roles that may open this module. Mirrors what the database allows. */
   roles: UserRole[];
+  /**
+   * Whether the screen is finished.
+   *
+   * Several modules are left over from the demo this project started as:
+   * they read a mock context rather than the database, and show numbers
+   * that were typed into the source. A screen that looks like it works and
+   * does not is worse than one that is missing, so they stay out of the
+   * menu until they are built. Their routes are untouched — putting one
+   * back is deleting the flag from its line.
+   */
+  ready?: boolean;
   badge?: number;
   badgeTone?: 'warn' | 'risk' | 'accent';
 }
@@ -85,10 +97,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
           // supplier. The GM is on this list too: slips arrive by email and
           // whoever opens that inbox first should be able to file them
           // rather than wait for the admin to be at a desk.
-          roles: ['manager', 'admin', 'dispatcher', 'gm'],
+          roles: ['manager', 'admin', 'dispatcher', 'gm', 'ceo'],
         },
         { id: 'slipReview', label: 'Slip Review', icon: ClipboardCheck, roles: ['ceo', 'gm'] },
         { id: 'myDeliveries', label: 'My Deliveries', icon: Truck, roles: ['driver'] },
+        {
+          id: 'requests',
+          label: 'Requests',
+          icon: Send,
+          // Asking and answering: the warehouse asks the office, a driver
+          // asks the warehouse, and supervisors can step in either way.
+          roles: ['ceo', 'gm', 'manager', 'admin', 'warehouse', 'driver'],
+        },
         {
           id: 'receiving',
           label: 'Receiving',
@@ -97,16 +117,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
           roles: ['ceo', 'gm', 'warehouse'],
         },
         {
-          id: 'dispatcher',
+          id: 'dispatcher', ready: false,
           label: 'Dispatcher',
           icon: Truck,
           roles: ['ceo', 'gm', 'manager', 'dispatcher'],
           badge: activeTrips || undefined,
           badgeTone: 'accent',
         },
-        { id: 'trips', label: 'Trips', icon: Route, roles: ['ceo', 'gm', 'manager', 'dispatcher'] },
-        { id: 'driverPanel', label: 'Driver Panel', icon: UserCog, roles: ALL },
-        { id: 'liveGps', label: 'Live GPS', icon: Navigation, roles: ['ceo', 'gm', 'manager', 'dispatcher'] },
+        { id: 'trips', ready: false, label: 'Trips', icon: Route, roles: ['ceo', 'gm', 'manager', 'dispatcher'] },
+        { id: 'driverPanel', ready: false, label: 'Driver Panel', icon: UserCog, roles: ALL },
+        { id: 'liveGps', ready: false, label: 'Live GPS', icon: Navigation, roles: ['ceo', 'gm', 'manager', 'dispatcher'] },
       ],
     },
     {
@@ -134,7 +154,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
           roles: ['ceo', 'gm', 'manager', 'admin'],
         },
         {
-          id: 'supplierInventory',
+          id: 'supplierInventory', ready: false,
           label: 'Supplier Inventory',
           icon: PackagePlus,
           roles: OPS,
@@ -142,7 +162,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
           badgeTone: 'accent',
         },
         {
-          id: 'warehouse',
+          id: 'warehouse', ready: false,
           label: 'Warehouse',
           icon: Boxes,
           roles: OPS,
@@ -154,10 +174,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
     {
       heading: 'Commercial',
       items: [
-        { id: 'customers', label: 'Customers', icon: Building2, roles: COMMERCIAL },
-        { id: 'invoices', label: 'Invoices', icon: ShieldCheck, roles: COMMERCIAL },
-        { id: 'expenses', label: 'Expenses', icon: DollarSign, roles: COMMERCIAL },
-        { id: 'drivers', label: 'Drivers & Fleet', icon: Users, roles: ['ceo', 'gm', 'manager', 'dispatcher'] },
+        { id: 'customers', ready: false, label: 'Customers', icon: Building2, roles: COMMERCIAL },
+        { id: 'invoices', ready: false, label: 'Invoices', icon: ShieldCheck, roles: COMMERCIAL },
+        { id: 'expenses', ready: false, label: 'Expenses', icon: DollarSign, roles: COMMERCIAL },
+        { id: 'drivers', ready: false, label: 'Drivers & Fleet', icon: Users, roles: ['ceo', 'gm', 'manager', 'dispatcher'] },
       ],
     },
     {
@@ -179,23 +199,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
           // gave a slip to; the admin files the slips, so they see it too.
           roles: ['ceo', 'gm', 'manager', 'admin'],
         },
-        { id: 'approvalCenter', label: 'Approvals', icon: ClipboardCheck, roles: LEADERSHIP },
-        { id: 'masterAudit', label: 'Audit Trail', icon: ScrollText, roles: LEADERSHIP },
-        { id: 'reports', label: 'Reports', icon: BarChart3, roles: COMMERCIAL },
+        { id: 'approvalCenter', ready: false, label: 'Approvals', icon: ClipboardCheck, roles: LEADERSHIP },
+        { id: 'masterAudit', ready: false, label: 'Audit Trail', icon: ScrollText, roles: LEADERSHIP },
+        { id: 'reports', ready: false, label: 'Reports', icon: BarChart3, roles: COMMERCIAL },
       ],
     },
     {
       heading: 'Administration',
       items: [
-        { id: 'users', label: 'Users', icon: Users, roles: ADMINISTRATION },
-        { id: 'backupSync', label: 'Backup & Sync', icon: Database, roles: ADMINISTRATION },
-        { id: 'settings', label: 'Settings', icon: Settings, roles: ADMINISTRATION },
+        { id: 'users', ready: false, label: 'Users', icon: Users, roles: ADMINISTRATION },
+        { id: 'backupSync', ready: false, label: 'Backup & Sync', icon: Database, roles: ADMINISTRATION },
+        { id: 'settings', ready: false, label: 'Settings', icon: Settings, roles: ADMINISTRATION },
       ],
     },
   ];
 
   const visible = groups
-    .map((g) => ({ ...g, items: g.items.filter((i) => role && i.roles.includes(role)) }))
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((i) => i.ready !== false && role && i.roles.includes(role)),
+    }))
     .filter((g) => g.items.length > 0);
 
   const go = (view: NavView) => {

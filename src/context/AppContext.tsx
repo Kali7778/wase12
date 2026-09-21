@@ -89,6 +89,7 @@ export type NavView =
   | 'products'
   | 'custody'
   | 'reissues'
+  | 'requests'
   | 'ceoPanel'
   | 'gmPanel'
   | 'managerPanel'

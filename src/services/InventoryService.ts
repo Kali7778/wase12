@@ -108,10 +108,17 @@ class InventoryServiceImpl {
     filter: InventoryFilter = {},
     page = 0,
     pageSize = 50,
+    options: { withCount?: boolean } = {},
   ): Promise<InventoryPage> {
-    let q = supabase
-      .from('v_inventory_dashboard')
-      .select('*', { count: 'exact' });
+    // Counting a filtered register means reading all of it (a third of a
+    // second on ten years of slips), and the total does not change while
+    // somebody pages through it. It is asked for when the filter changes
+    // and carried along after that.
+    const withCount = options.withCount ?? true;
+
+    let q = withCount
+      ? supabase.from('v_inventory_dashboard').select('*', { count: 'exact' })
+      : supabase.from('v_inventory_dashboard').select('*');
 
     const term = filter.search?.trim();
     if (term) {
@@ -150,7 +157,7 @@ class InventoryServiceImpl {
 
     return {
       rows: (data ?? []).map(toRow),
-      total: count ?? 0,
+      total: withCount ? (count ?? 0) : null,
     };
   }
 
@@ -167,48 +174,54 @@ class InventoryServiceImpl {
     balanceQty: number;
     discrepancies: number;
   }> {
-    // Every matching row is needed to total it, so ask for only the four
-    // columns that go into the sum rather than the whole register.
-    let q = supabase
-      .from('v_inventory_dashboard')
-      .select(`"${COL.pdfQty}","${COL.missingQty}","${COL.balance}",received_at`);
+    /*
+     * Totalled in the database, and it has to be.
+     *
+     * This used to fetch every matching row and add them up here. The API
+     * returns at most a thousand rows, so on a register of 200,000 lines
+     * the strip showed the total of the first thousand — 750,000 bags
+     * claimed where the real figure was 150,011,250. It looked right,
+     * which is the worst way for a number to be wrong.
+     */
+    const { data, error } = await supabase.rpc('inventory_totals', {
+      p_search: filter.search?.trim() || undefined,
+      p_status: filter.status && filter.status !== 'all' ? filter.status : undefined,
+      p_discrepancies_only: filter.discrepanciesOnly ?? false,
+      p_from: filter.fromDate || undefined,
+      p_to: filter.toDate || undefined,
+    });
 
-    const term = filter.search?.trim();
-    if (term) {
-      const like = `%${term}%`;
-      q = q.or(
-        [
-          `"${COL.dn}".ilike.${like}`,
-          `"${COL.so}".ilike.${like}`,
-          `item_number.ilike.${like}`,
-          `"${COL.item}".ilike.${like}`,
-        ].join(','),
-      );
-    }
-    if (filter.status && filter.status !== 'all') q = q.eq(COL.status, filter.status);
-    if (filter.discrepanciesOnly) q = q.not('received_at', 'is', null).neq(COL.missingQty, 0);
-    if (filter.fromDate) q = q.gte('print_date', filter.fromDate);
-    if (filter.toDate) q = q.lte('print_date', filter.toDate);
-
-    const { data, error } = await q;
     if (error) throw toAppError(error, 'Totalling the inventory register');
 
-    const rows = data ?? [];
+    const row = data?.[0];
     return {
-      notes: rows.length,
-      pdfQty: rows.reduce((s, r) => s + Number(r[COL.pdfQty] ?? 0), 0),
-      missingQty: rows.reduce((s, r) => s + Number(r[COL.missingQty] ?? 0), 0),
-      balanceQty: rows.reduce((s, r) => s + Number(r[COL.balance] ?? 0), 0),
-      discrepancies: rows.filter(
-        (r) => r.received_at !== null && Number(r[COL.missingQty] ?? 0) !== 0,
-      ).length,
+      notes: Number(row?.notes ?? 0),
+      pdfQty: Number(row?.pdf_qty ?? 0),
+      missingQty: Number(row?.missing_qty ?? 0),
+      balanceQty: Number(row?.balance_qty ?? 0),
+      discrepancies: Number(row?.discrepancies ?? 0),
     };
   }
 
-  /** Every matching row, for export. Paging is skipped on purpose here. */
-  async listAllForExport(filter: InventoryFilter = {}, cap = 5000): Promise<InventoryRow[]> {
-    const { rows } = await this.listPage(filter, 0, cap);
-    return rows;
+  /**
+   * Every matching row, for export.
+   *
+   * Read a page at a time: the API caps a single request at a thousand
+   * rows, so asking for five thousand quietly returned one thousand and
+   * the spreadsheet was short by four. `cap` is what stops an export of
+   * the whole history from running away with the browser's memory.
+   */
+  async listAllForExport(filter: InventoryFilter = {}, cap = 20000): Promise<InventoryRow[]> {
+    const pageSize = 1000;
+    const rows: InventoryRow[] = [];
+
+    for (let page = 0; rows.length < cap; page += 1) {
+      const { rows: batch } = await this.listPage(filter, page, pageSize, { withCount: false });
+      rows.push(...batch);
+      if (batch.length < pageSize) break;
+    }
+
+    return rows.slice(0, cap);
   }
 
   /**
