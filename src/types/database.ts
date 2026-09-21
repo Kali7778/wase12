@@ -34,6 +34,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      company_profile: {
+        Row: {
+          address_ar: string | null
+          address_en: string | null
+          cr_number: string | null
+          id: boolean
+          logo_path: string | null
+          name_ar: string | null
+          name_en: string | null
+          phone: string | null
+          updated_at: string
+          updated_by: string | null
+          vat_number: string | null
+        }
+        Insert: {
+          address_ar?: string | null
+          address_en?: string | null
+          cr_number?: string | null
+          id?: boolean
+          logo_path?: string | null
+          name_ar?: string | null
+          name_en?: string | null
+          phone?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          vat_number?: string | null
+        }
+        Update: {
+          address_ar?: string | null
+          address_en?: string | null
+          cr_number?: string | null
+          id?: boolean
+          logo_path?: string | null
+          name_ar?: string | null
+          name_en?: string | null
+          phone?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          vat_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_profile_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -193,6 +243,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_note_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_current_price"
+            referencedColumns: ["item_id"]
           },
           {
             foreignKeyName: "delivery_note_lines_item_id_fkey"
@@ -733,6 +790,62 @@ export type Database = {
           },
         ]
       }
+      item_prices: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          note: string | null
+          price: number
+          set_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          note?: string | null
+          price: number
+          set_by: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          note?: string | null
+          price?: number
+          set_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_prices_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_prices_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_current_price"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "item_prices_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_stock"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "item_prices_set_by_fkey"
+            columns: ["set_by"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       items: {
         Row: {
           created_at: string
@@ -981,6 +1094,13 @@ export type Database = {
             foreignKeyName: "stock_movements_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
+            referencedRelation: "v_item_current_price"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
             referencedRelation: "v_item_stock"
             referencedColumns: ["item_id"]
           },
@@ -1179,6 +1299,57 @@ export type Database = {
         }
         Relationships: []
       }
+      v_item_current_price: {
+        Row: {
+          description_ar: string | null
+          description_en: string | null
+          is_active: boolean | null
+          item_id: string | null
+          item_number: string | null
+          price: number | null
+          price_note: string | null
+          price_set_by_name: string | null
+          price_since: string | null
+          uom: string | null
+        }
+        Relationships: []
+      }
+      v_item_price_history: {
+        Row: {
+          created_at: string | null
+          description_en: string | null
+          id: string | null
+          item_id: string | null
+          item_number: string | null
+          note: string | null
+          previous_price: number | null
+          price: number | null
+          set_by_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_prices_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_prices_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_current_price"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "item_prices_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_stock"
+            referencedColumns: ["item_id"]
+          },
+        ]
+      }
       v_item_stock: {
         Row: {
           available_qty: number | null
@@ -1255,6 +1426,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_note_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_current_price"
+            referencedColumns: ["item_id"]
           },
           {
             foreignKeyName: "delivery_note_lines_item_id_fkey"
@@ -2231,9 +2409,57 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      save_company_profile: {
+        Args: {
+          p_address_ar: string
+          p_address_en: string
+          p_cr_number: string
+          p_logo_path: string
+          p_name_ar: string
+          p_name_en: string
+          p_phone: string
+          p_vat_number: string
+        }
+        Returns: {
+          address_ar: string | null
+          address_en: string | null
+          cr_number: string | null
+          id: boolean
+          logo_path: string | null
+          name_ar: string | null
+          name_en: string | null
+          phone: string | null
+          updated_at: string
+          updated_by: string | null
+          vat_number: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "company_profile"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       send_dn_to_gm: {
         Args: { p_dn_ids: string[]; p_gm_id?: string; p_note?: string }
         Returns: number
+      }
+      set_item_price: {
+        Args: { p_item_id: string; p_note?: string; p_price: number }
+        Returns: {
+          created_at: string
+          id: string
+          item_id: string
+          note: string | null
+          price: number
+          set_by: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "item_prices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       set_user_flags: {
         Args: {

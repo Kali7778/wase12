@@ -2,6 +2,7 @@ import React from 'react';
 import {
   BarChart3,
   Boxes,
+  Building,
   Building2,
   ClipboardCheck,
   Database,
@@ -20,6 +21,7 @@ import {
   Send,
   Settings,
   ShieldCheck,
+  Tag,
   Truck,
   UserCog,
   Users,
@@ -183,6 +185,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
       heading: 'Commercial',
       items: [
         { id: 'customers', label: 'Customers', icon: Building2, roles: COMMERCIAL },
+        // What each product sells for; admin, GM and superadmin may change it (D64).
+        { id: 'prices', label: 'Prices', icon: Tag, roles: COMMERCIAL },
         { id: 'invoices', ready: false, label: 'Invoices', icon: ShieldCheck, roles: COMMERCIAL },
         { id: 'expenses', ready: false, label: 'Expenses', icon: DollarSign, roles: COMMERCIAL },
         { id: 'drivers', ready: false, label: 'Drivers & Fleet', icon: Users, roles: ['ceo', 'gm', 'manager', 'dispatcher'] },
@@ -215,6 +219,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
     {
       heading: 'Administration',
       items: [
+        // The head of every bill; the GM or superadmin fills it in (D65).
+        { id: 'company', label: 'Company details', icon: Building, roles: ADMINISTRATION },
         { id: 'users', ready: false, label: 'Users', icon: Users, roles: ADMINISTRATION },
         { id: 'backupSync', ready: false, label: 'Backup & Sync', icon: Database, roles: ADMINISTRATION },
         { id: 'settings', ready: false, label: 'Settings', icon: Settings, roles: ADMINISTRATION },

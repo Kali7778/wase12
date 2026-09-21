@@ -144,7 +144,7 @@ export const CustomerListView: React.FC = () => {
             <Button variant="secondary" icon={RefreshCw} onClick={() => void refresh()}>
               Refresh
             </Button>
-            <Button icon={Plus} onClick={startAdd}>
+            <Button variant="primary" icon={Plus} onClick={startAdd}>
               Add a customer
             </Button>
           </>
@@ -232,7 +232,7 @@ export const CustomerListView: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 mt-4">
-            <Button onClick={() => void save()} loading={saving} disabled={form.name.trim() === ''}>
+            <Button variant="primary" onClick={() => void save()} loading={saving} disabled={form.name.trim() === ''}>
               {editingId ? 'Save changes' : 'Add customer'}
             </Button>
             <Button

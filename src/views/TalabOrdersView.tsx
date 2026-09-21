@@ -271,6 +271,7 @@ export const TalabOrdersView: React.FC = () => {
                               />
                             </Field>
                             <Button
+                              variant="primary"
                               size="sm"
                               icon={CheckCircle2}
                               loading={busy}

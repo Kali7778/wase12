@@ -20,6 +20,8 @@ import { InventoryView } from './views/InventoryView';
 import { ProductsView } from './views/ProductsView';
 import { CustodyView } from './views/CustodyView';
 import { TalabOrdersView } from './views/TalabOrdersView';
+import { PricesView } from './views/PricesView';
+import { CompanyView } from './views/CompanyView';
 import { ReissuesView } from './views/ReissuesView';
 import { RequestsView } from './views/RequestsView';
 import { DashboardView } from './views/DashboardView';
@@ -79,6 +81,10 @@ const MainLayout: React.FC = () => {
         return <CustodyView />;
       case 'talab':
         return <TalabOrdersView />;
+      case 'prices':
+        return <PricesView />;
+      case 'company':
+        return <CompanyView />;
       case 'reissues':
         return <ReissuesView />;
       case 'requests':

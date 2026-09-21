@@ -91,6 +91,8 @@ export type NavView =
   | 'reissues'
   | 'requests'
   | 'talab'
+  | 'prices'
+  | 'company'
   | 'ceoPanel'
   | 'gmPanel'
   | 'managerPanel'
