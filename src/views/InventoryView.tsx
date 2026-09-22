@@ -13,7 +13,7 @@ import {
 import { EmptyState, PageHeader, Panel } from '../components/ui/Panel';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { Input, Select } from '../components/ui/Field';
+import { Field, Input, Select } from '../components/ui/Field';
 import { inventoryService } from '../services/InventoryService';
 import type { InventoryFilter, InventoryRow } from '../models/inventory';
 import type { DnStatus } from '../models/base';
@@ -235,20 +235,13 @@ export const InventoryView: React.FC = () => {
           ))}
         </Select>
 
-        <Input
-          aria-label="From date"
-          type="date"
-          value={fromDate}
-          onChange={(e) => setFromDate(e.target.value)}
-          className="w-full sm:w-40"
-        />
-        <Input
-          aria-label="To date"
-          type="date"
-          value={toDate}
-          onChange={(e) => setToDate(e.target.value)}
-          className="w-full sm:w-40"
-        />
+        {/* Labelled: an empty date box shows nothing at all on a phone. */}
+        <Field label="From date" htmlFor="inv-from" className="w-full sm:w-40">
+          <Input id="inv-from" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+        </Field>
+        <Field label="To date" htmlFor="inv-to" className="w-full sm:w-40">
+          <Input id="inv-to" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+        </Field>
 
         <Button
           size="sm"
@@ -287,8 +280,7 @@ export const InventoryView: React.FC = () => {
             <table className="w-full text-tiny border-collapse">
               <thead>
                 <tr className="border-b border-line bg-sunken">
-                  <Th>DN No</Th>
-                  <Th hide="2xl">SO No</Th>
+                  <Th>DN / SO No</Th>
                   <Th hide="xl">Date</Th>
                   <Th>Item</Th>
                   <Th align="right">PDF Qty</Th>
@@ -308,12 +300,14 @@ export const InventoryView: React.FC = () => {
                     className="border-b border-line last:border-0 hover:bg-raised cursor-pointer transition-colors"
                   >
                     <Td>
-                      <span className="font-semibold text-ink" data-numeric>
+                      <span className="block font-semibold text-ink" data-numeric>
                         {row.dnNumber}
                       </span>
-                    </Td>
-                    <Td numeric muted hide="2xl">
-                      {row.soNumber}
+                      {/* Under the DN rather than a column of its own, so it shows
+                          on a phone as well as on a wide screen. */}
+                      <span className="block text-micro text-ink-faint" data-numeric>
+                        SO {row.soNumber || '—'}
+                      </span>
                     </Td>
                     <Td muted hide="xl">
                       {row.printDate ?? '—'}
