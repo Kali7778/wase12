@@ -55,7 +55,10 @@ export abstract class BaseService<TRow, TModel extends BaseRecord> {
 
   /** Fetch one record by id. Returns `null` when it does not exist. */
   async findById(id: string): Promise<TModel | null> {
-    const { data, error } = await this.from().select('*').eq('id', id).maybeSingle();
+    // `.filter()` rather than `.eq()`: across the union of every table the
+    // `id` column is a uuid on most and a boolean on the single-row ones
+    // (company_profile, bill_counter), and `.eq()` resolves that to `never`.
+    const { data, error } = await this.from().select('*').filter('id', 'eq', id).maybeSingle();
 
     if (error) throw toAppError(error, `Loading ${this.label}`);
     return data ? this.toModel(data as TRow) : null;

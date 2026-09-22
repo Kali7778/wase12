@@ -93,6 +93,7 @@ export type NavView =
   | 'talab'
   | 'prices'
   | 'company'
+  | 'bills'
   | 'ceoPanel'
   | 'gmPanel'
   | 'managerPanel'

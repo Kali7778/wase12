@@ -6,6 +6,9 @@ import { Badge } from '../components/ui/Badge';
 import { Field, Input, Textarea } from '../components/ui/Field';
 import { useAuth } from '../context/AuthContext';
 import { deliveryNoteService } from '../services/DeliveryNoteService';
+import { billingService } from '../services/BillingService';
+import { requestBillForSlip } from '../state/billIntent';
+import { useApp } from '../context/AppContext';
 import { ROLE_LABEL } from '../models/base';
 import {
   TERMS_LABEL,
@@ -41,11 +44,25 @@ export const TalabOrdersView: React.FC = () => {
 
   // Who may close one, exactly as `mark_talab_delivered` has it.
   const canClose = can('admin', 'manager', 'gm', 'ceo');
+  // Who may write a bill, exactly as create_bill() has it (D58).
+  const canBill = can('admin', 'gm', 'ceo');
+  const { setCurrentView } = useApp();
+  // The live bill of each order, by delivery note (D60).
+  const [billOf, setBillOf] = useState<Record<string, string>>({});
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      setOrders(await deliveryNoteService.listTalabOrders({ search, openOnly }));
+      const [list, bills] = await Promise.all([
+        deliveryNoteService.listTalabOrders({ search, openOnly }),
+        billingService.listBills({ kind: 'talab', liveOnly: true, limit: 1000 }),
+      ]);
+      setOrders(list);
+      setBillOf(
+        Object.fromEntries(
+          bills.filter((b) => b.deliveryNoteId).map((b) => [b.deliveryNoteId as string, b.billNumber]),
+        ),
+      );
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load the customer orders');
@@ -224,7 +241,25 @@ export const TalabOrdersView: React.FC = () => {
                         ) : null}
                       </td>
 
-                      <td className="px-4 py-2.5 align-top text-right whitespace-nowrap">
+                      <td className="px-4 py-2.5 align-top text-right whitespace-nowrap space-y-1.5">
+                        {billOf[o.deliveryNoteId] ? (
+                          <span className="block text-micro text-ink-soft" data-numeric>
+                            Billed · {billOf[o.deliveryNoteId]}
+                          </span>
+                        ) : canBill && o.workflowStatus !== 'replaced' && o.workflowStatus !== 'rejected' ? (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="mb-1"
+                            onClick={() => {
+                              requestBillForSlip(o.deliveryNoteId);
+                              setCurrentView('bills');
+                            }}
+                          >
+                            Make bill
+                          </Button>
+                        ) : null}
+                        <div>
                         {o.deliveredAt ? (
                           <span className="inline-flex items-center gap-1 text-micro text-ok font-semibold">
                             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -250,6 +285,7 @@ export const TalabOrdersView: React.FC = () => {
                         ) : (
                           <span className="text-micro text-ink-faint">with the office</span>
                         )}
+                        </div>
                       </td>
                     </tr>
 

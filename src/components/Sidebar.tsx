@@ -16,6 +16,7 @@ import {
   PackageMinus,
   PackageSearch,
   PackagePlus,
+  ReceiptText,
   Route,
   ScrollText,
   Send,
@@ -187,6 +188,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
         { id: 'customers', label: 'Customers', icon: Building2, roles: COMMERCIAL },
         // What each product sells for; admin, GM and superadmin may change it (D64).
         { id: 'prices', label: 'Prices', icon: Tag, roles: COMMERCIAL },
+        // Bills from stock and for customer orders; admin, GM and superadmin write them (D58).
+        { id: 'bills', label: 'Bills', icon: ReceiptText, roles: COMMERCIAL },
         { id: 'invoices', ready: false, label: 'Invoices', icon: ShieldCheck, roles: COMMERCIAL },
         { id: 'expenses', ready: false, label: 'Expenses', icon: DollarSign, roles: COMMERCIAL },
         { id: 'drivers', ready: false, label: 'Drivers & Fleet', icon: Users, roles: ['ceo', 'gm', 'manager', 'dispatcher'] },

@@ -34,6 +34,279 @@ export type Database = {
   }
   public: {
     Tables: {
+      bill_counter: {
+        Row: {
+          id: boolean
+          last_number: number
+        }
+        Insert: {
+          id?: boolean
+          last_number?: number
+        }
+        Update: {
+          id?: boolean
+          last_number?: number
+        }
+        Relationships: []
+      }
+      bill_lines: {
+        Row: {
+          bill_id: string
+          description: string
+          id: string
+          item_id: string | null
+          kind: Database["public"]["Enums"]["bill_line_kind"]
+          line_no: number
+          list_price: number | null
+          qty: number
+          revise_note: string | null
+          unit_price: number
+          uom: string | null
+        }
+        Insert: {
+          bill_id: string
+          description: string
+          id?: string
+          item_id?: string | null
+          kind: Database["public"]["Enums"]["bill_line_kind"]
+          line_no: number
+          list_price?: number | null
+          qty: number
+          revise_note?: string | null
+          unit_price: number
+          uom?: string | null
+        }
+        Update: {
+          bill_id?: string
+          description?: string
+          id?: string
+          item_id?: string | null
+          kind?: Database["public"]["Enums"]["bill_line_kind"]
+          line_no?: number
+          list_price?: number | null
+          qty?: number
+          revise_note?: string | null
+          unit_price?: number
+          uom?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_lines_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_lines_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "v_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_current_price"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "bill_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_stock"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "bill_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_sellable_items"
+            referencedColumns: ["item_id"]
+          },
+        ]
+      }
+      bill_stock_movements: {
+        Row: {
+          bill_line_id: string
+          stock_movement_id: string
+        }
+        Insert: {
+          bill_line_id: string
+          stock_movement_id: string
+        }
+        Update: {
+          bill_line_id?: string
+          stock_movement_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_stock_movements_bill_line_id_fkey"
+            columns: ["bill_line_id"]
+            isOneToOne: false
+            referencedRelation: "bill_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_stock_movements_stock_movement_id_fkey"
+            columns: ["stock_movement_id"]
+            isOneToOne: false
+            referencedRelation: "stock_movements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bills: {
+        Row: {
+          bill_number: string
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          company: Json
+          created_at: string
+          created_by: string
+          customer_id: string | null
+          customer_name: string
+          customer_name_ar: string | null
+          customer_phone: string | null
+          customer_terms: Database["public"]["Enums"]["customer_terms"]
+          delivery_note_id: string | null
+          id: string
+          kind: Database["public"]["Enums"]["bill_kind"]
+          note: string | null
+          paid_at: string | null
+          paid_by: string | null
+          seq: number
+          walk_in_name: string | null
+          walk_in_phone: string | null
+        }
+        Insert: {
+          bill_number: string
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          company: Json
+          created_at?: string
+          created_by: string
+          customer_id?: string | null
+          customer_name: string
+          customer_name_ar?: string | null
+          customer_phone?: string | null
+          customer_terms: Database["public"]["Enums"]["customer_terms"]
+          delivery_note_id?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["bill_kind"]
+          note?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          seq: number
+          walk_in_name?: string | null
+          walk_in_phone?: string | null
+        }
+        Update: {
+          bill_number?: string
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          company?: Json
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          customer_name?: string
+          customer_name_ar?: string | null
+          customer_phone?: string | null
+          customer_terms?: Database["public"]["Enums"]["customer_terms"]
+          delivery_note_id?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["bill_kind"]
+          note?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          seq?: number
+          walk_in_name?: string | null
+          walk_in_phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bills_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "v_talab_orders"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "bills_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_dashboard"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "bills_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "bills_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["replaced_dn_id"]
+          },
+          {
+            foreignKeyName: "bills_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_talab_orders"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "bills_paid_by_fkey"
+            columns: ["paid_by"]
+            isOneToOne: false
+            referencedRelation: "user_tbl"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_profile: {
         Row: {
           address_ar: string | null
@@ -256,6 +529,13 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "v_item_stock"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "delivery_note_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_sellable_items"
             referencedColumns: ["item_id"]
           },
           {
@@ -838,6 +1118,13 @@ export type Database = {
             referencedColumns: ["item_id"]
           },
           {
+            foreignKeyName: "item_prices_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_sellable_items"
+            referencedColumns: ["item_id"]
+          },
+          {
             foreignKeyName: "item_prices_set_by_fkey"
             columns: ["set_by"]
             isOneToOne: false
@@ -1105,6 +1392,13 @@ export type Database = {
             referencedColumns: ["item_id"]
           },
           {
+            foreignKeyName: "stock_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_sellable_items"
+            referencedColumns: ["item_id"]
+          },
+          {
             foreignKeyName: "stock_movements_reversal_of_fkey"
             columns: ["reversal_of"]
             isOneToOne: false
@@ -1275,6 +1569,145 @@ export type Database = {
       }
     }
     Views: {
+      v_bill_lines: {
+        Row: {
+          amount: number | null
+          bill_id: string | null
+          description: string | null
+          is_revised: boolean | null
+          item_id: string | null
+          item_number: string | null
+          kind: Database["public"]["Enums"]["bill_line_kind"] | null
+          line_no: number | null
+          list_price: number | null
+          qty: number | null
+          revise_note: string | null
+          unit_price: number | null
+          uom: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_lines_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_lines_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "v_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_current_price"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "bill_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_item_stock"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "bill_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_sellable_items"
+            referencedColumns: ["item_id"]
+          },
+        ]
+      }
+      v_bills: {
+        Row: {
+          bill_number: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by_name: string | null
+          company: Json | null
+          created_at: string | null
+          created_by_name: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_name_ar: string | null
+          customer_phone: string | null
+          customer_terms: Database["public"]["Enums"]["customer_terms"] | null
+          delivery_note_id: string | null
+          dn_number: string | null
+          goods_total: number | null
+          id: string | null
+          is_walk_in: boolean | null
+          kind: Database["public"]["Enums"]["bill_kind"] | null
+          note: string | null
+          paid_at: string | null
+          seq: number | null
+          services_total: number | null
+          total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bills_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "v_talab_orders"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "bills_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_dashboard"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "bills_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["delivery_note_id"]
+          },
+          {
+            foreignKeyName: "bills_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_reissue_register"
+            referencedColumns: ["replaced_dn_id"]
+          },
+          {
+            foreignKeyName: "bills_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "v_talab_orders"
+            referencedColumns: ["delivery_note_id"]
+          },
+        ]
+      }
       v_inventory_dashboard: {
         Row: {
           "Arrived Qty": number | null
@@ -1346,6 +1779,13 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "v_item_stock"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "item_prices_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_sellable_items"
             referencedColumns: ["item_id"]
           },
         ]
@@ -1441,6 +1881,13 @@ export type Database = {
             referencedRelation: "v_item_stock"
             referencedColumns: ["item_id"]
           },
+          {
+            foreignKeyName: "delivery_note_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_sellable_items"
+            referencedColumns: ["item_id"]
+          },
         ]
       }
       v_reissue_register: {
@@ -1466,6 +1913,18 @@ export type Database = {
           Reported: string | null
           "Reported by": string | null
           UOM: string | null
+        }
+        Relationships: []
+      }
+      v_sellable_items: {
+        Row: {
+          description_ar: string | null
+          description_en: string | null
+          in_stock: number | null
+          item_id: string | null
+          item_number: string | null
+          price: number | null
+          uom: string | null
         }
         Relationships: []
       }
@@ -1691,6 +2150,7 @@ export type Database = {
         Args: { fragment: string; label: string; sql: string }
         Returns: undefined
       }
+      _t_stock: { Args: { p_item: string }; Returns: number }
       acknowledge_delivery_note: {
         Args: { p_dn_id: string }
         Returns: {
@@ -1823,6 +2283,38 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      cancel_bill: {
+        Args: { p_bill_id: string; p_reason: string }
+        Returns: {
+          bill_number: string
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          company: Json
+          created_at: string
+          created_by: string
+          customer_id: string | null
+          customer_name: string
+          customer_name_ar: string | null
+          customer_phone: string | null
+          customer_terms: Database["public"]["Enums"]["customer_terms"]
+          delivery_note_id: string | null
+          id: string
+          kind: Database["public"]["Enums"]["bill_kind"]
+          note: string | null
+          paid_at: string | null
+          paid_by: string | null
+          seq: number
+          walk_in_name: string | null
+          walk_in_phone: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bills"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       cancel_slip_request: {
         Args: { p_request_id: string }
         Returns: {
@@ -1875,6 +2367,48 @@ export type Database = {
           p_password: string
         }
         Returns: string
+      }
+      create_bill: {
+        Args: {
+          p_customer_id?: string
+          p_delivery_note_id?: string
+          p_kind: Database["public"]["Enums"]["bill_kind"]
+          p_labour?: number
+          p_lines: Json
+          p_note?: string
+          p_transport?: number
+          p_walk_in_name?: string
+          p_walk_in_phone?: string
+        }
+        Returns: {
+          bill_number: string
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          company: Json
+          created_at: string
+          created_by: string
+          customer_id: string | null
+          customer_name: string
+          customer_name_ar: string | null
+          customer_phone: string | null
+          customer_terms: Database["public"]["Enums"]["customer_terms"]
+          delivery_note_id: string | null
+          id: string
+          kind: Database["public"]["Enums"]["bill_kind"]
+          note: string | null
+          paid_at: string | null
+          paid_by: string | null
+          seq: number
+          walk_in_name: string | null
+          walk_in_phone: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bills"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       create_delivery_note: {
         Args: {
@@ -2534,6 +3068,8 @@ export type Database = {
       }
     }
     Enums: {
+      bill_kind: "talab" | "stock"
+      bill_line_kind: "goods" | "transport" | "labour"
       customer_terms: "weekly" | "cash"
       dn_discrepancy_reason:
         | "supplier_short_loaded"
@@ -2710,6 +3246,8 @@ export const Constants = {
   },
   public: {
     Enums: {
+      bill_kind: ["talab", "stock"],
+      bill_line_kind: ["goods", "transport", "labour"],
       customer_terms: ["weekly", "cash"],
       dn_discrepancy_reason: [
         "supplier_short_loaded",

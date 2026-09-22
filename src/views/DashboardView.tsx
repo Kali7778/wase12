@@ -7,6 +7,7 @@ import {
   History,
   PackageCheck,
   PackageSearch,
+  ReceiptText,
   Send,
 } from 'lucide-react';
 import { PageHeader, Panel } from '../components/ui/Panel';
@@ -69,6 +70,13 @@ const SHORTCUTS: Shortcut[] = [
     label: 'Customer Orders',
     description: 'Loads going straight to a customer, and what is still open.',
     icon: Truck,
+    roles: ['admin', 'manager', 'gm', 'ceo'],
+  },
+  {
+    id: 'bills',
+    label: 'Bills',
+    description: 'Write a bill from stock or for a customer order, and print it.',
+    icon: ReceiptText,
     roles: ['admin', 'manager', 'gm', 'ceo'],
   },
   {
