@@ -48,6 +48,67 @@ export interface Bill {
   cancelReason: string | null;
   createdByName: string | null;
   cancelledByName: string | null;
+  /** The job out on this bill right now, if any (0033). */
+  collectionStatus: CollectionStatus | null;
+  collectionDriverName: string | null;
+  collectionId: string | null;
+}
+
+/**
+ * Collecting what a weekly customer owes (D73–D78).
+ *
+ * The GM hands a bill to a driver; the driver either brings the money or
+ * says why not; the GM takes it in and the bill is paid. A job is never
+ * edited — it is closed with a reason and a new one is sent out.
+ */
+export type CollectionStatus = Enums<'collection_status'>;
+
+export const COLLECTION_LABEL: Record<CollectionStatus, string> = {
+  with_driver: 'With driver',
+  collected: 'Driver has the money',
+  received: 'Taken in',
+  declined: 'Not collected',
+  cancelled: 'Taken back',
+};
+
+export const COLLECTION_TONE: Record<CollectionStatus, 'ok' | 'warn' | 'neutral' | 'info' | 'accent' | 'risk'> = {
+  with_driver: 'info',
+  collected: 'accent',
+  received: 'ok',
+  declined: 'risk',
+  cancelled: 'neutral',
+};
+
+/** A job is live while the money is still out of the office. */
+export const isLiveCollection = (s: CollectionStatus): boolean =>
+  s === 'with_driver' || s === 'collected';
+
+export interface PaymentCollection {
+  id: string;
+  status: CollectionStatus;
+  billId: string;
+  billNumber: string;
+  billKind: BillKind;
+  billDate: string;
+  dnNumber: string | null;
+  customerId: string | null;
+  customerName: string;
+  customerNameAr: string | null;
+  customerPhone: string | null;
+  customerAddress: string | null;
+  amount: number;
+  driverId: string;
+  driverName: string;
+  assignedAt: string;
+  assignedByName: string;
+  note: string | null;
+  collectedAt: string | null;
+  collectedNote: string | null;
+  receivedAt: string | null;
+  receivedByName: string | null;
+  receivedNote: string | null;
+  closedAt: string | null;
+  closedReason: string | null;
 }
 
 export interface BillLine {
@@ -100,19 +161,35 @@ export const BILL_KIND_LABEL: Record<BillKind, string> = {
   stock: 'From stock',
 };
 
-export type BillState = 'paid' | 'unpaid' | 'cancelled';
+/**
+ * Where a bill's money is (D74). Between unpaid and paid sit the two
+ * states that only exist because somebody is carrying cash: the driver
+ * has been sent, and the driver has the money.
+ */
+export type BillState = 'paid' | 'with_driver' | 'collected' | 'unpaid' | 'cancelled';
 
-export const billState = (b: Pick<Bill, 'paidAt' | 'cancelledAt'>): BillState =>
-  b.cancelledAt ? 'cancelled' : b.paidAt ? 'paid' : 'unpaid';
+export const billState = (
+  b: Pick<Bill, 'paidAt' | 'cancelledAt' | 'collectionStatus'>,
+): BillState => {
+  if (b.cancelledAt) return 'cancelled';
+  if (b.paidAt) return 'paid';
+  if (b.collectionStatus === 'collected') return 'collected';
+  if (b.collectionStatus === 'with_driver') return 'with_driver';
+  return 'unpaid';
+};
 
 export const BILL_STATE_LABEL: Record<BillState, string> = {
   paid: 'Paid',
+  with_driver: 'With driver',
+  collected: 'Driver has the money',
   unpaid: 'Unpaid',
   cancelled: 'Cancelled',
 };
 
-export const BILL_STATE_TONE: Record<BillState, 'ok' | 'warn' | 'neutral'> = {
+export const BILL_STATE_TONE: Record<BillState, 'ok' | 'warn' | 'neutral' | 'info' | 'accent'> = {
   paid: 'ok',
+  with_driver: 'info',
+  collected: 'accent',
   unpaid: 'warn',
   cancelled: 'neutral',
 };

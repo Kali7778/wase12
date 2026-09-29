@@ -6,7 +6,9 @@ import type {
   BillKind,
   BillLine,
   BillWithLines,
+  CollectionStatus,
   DraftLine,
+  PaymentCollection,
   SellableItem,
 } from '../models/billing';
 import type { Tables } from '../types/database';
@@ -36,6 +38,37 @@ const toBill = (row: BillRow): Bill => ({
   cancelReason: row.cancel_reason,
   createdByName: row.created_by_name,
   cancelledByName: row.cancelled_by_name,
+  collectionStatus: row.collection_status as Bill['collectionStatus'],
+  collectionDriverName: row.collection_driver_name,
+  collectionId: row.collection_id,
+});
+
+const toCollection = (row: Tables<'v_payment_collections'>): PaymentCollection => ({
+  id: row.id as string,
+  status: row.status as CollectionStatus,
+  billId: row.bill_id as string,
+  billNumber: row.bill_number as string,
+  billKind: row.bill_kind as BillKind,
+  billDate: row.bill_date as string,
+  dnNumber: row.dn_number,
+  customerId: row.customer_id,
+  customerName: row.customer_name as string,
+  customerNameAr: row.customer_name_ar,
+  customerPhone: row.customer_phone,
+  customerAddress: row.customer_address,
+  amount: Number(row.amount ?? 0),
+  driverId: row.driver_id as string,
+  driverName: row.driver_name as string,
+  assignedAt: row.assigned_at as string,
+  assignedByName: row.assigned_by_name as string,
+  note: row.note,
+  collectedAt: row.collected_at,
+  collectedNote: row.collected_note,
+  receivedAt: row.received_at,
+  receivedByName: row.received_by_name,
+  receivedNote: row.received_note,
+  closedAt: row.closed_at,
+  closedReason: row.closed_reason,
 });
 
 export interface NewBill {
@@ -157,6 +190,81 @@ class BillingServiceImpl {
   async cancelBill(id: string, reason: string): Promise<void> {
     const { error } = await supabase.rpc('cancel_bill', { p_bill_id: id, p_reason: reason });
     if (error) throw toAppError(error, 'Cancelling the bill');
+  }
+
+  // --- collecting what is owed (0033) -------------------------------------
+
+  /**
+   * Collection jobs. A driver's own are all the database will show them,
+   * whatever is asked for here.
+   */
+  async listCollections(
+    options: { liveOnly?: boolean; driverId?: string; limit?: number } = {},
+  ): Promise<PaymentCollection[]> {
+    let query = supabase
+      .from('v_payment_collections')
+      .select('*')
+      .order('assigned_at', { ascending: false })
+      .limit(options.limit ?? 200);
+
+    if (options.liveOnly) query = query.in('status', ['with_driver', 'collected']);
+    if (options.driverId) query = query.eq('driver_id', options.driverId);
+
+    const { data, error } = await query;
+    if (error) throw toAppError(error, 'Loading collections');
+    return (data ?? []).map(toCollection);
+  }
+
+  /** The GM sends a bill out with a driver. */
+  async assignCollection(billId: string, driverId: string, note?: string): Promise<void> {
+    const { error } = await supabase.rpc('assign_collection', {
+      p_bill_id: billId,
+      p_driver_id: driverId,
+      p_note: note?.trim() || undefined,
+    });
+    if (error) throw toAppError(error, 'Sending the bill out for collection');
+  }
+
+  async markCollected(collectionId: string, note?: string): Promise<void> {
+    const { error } = await supabase.rpc('driver_collected', {
+      p_collection_id: collectionId,
+      p_note: note?.trim() || undefined,
+    });
+    if (error) throw toAppError(error, 'Marking the money collected');
+  }
+
+  async markNotCollected(collectionId: string, reason: string): Promise<void> {
+    const { error } = await supabase.rpc('driver_declined', {
+      p_collection_id: collectionId,
+      p_reason: reason,
+    });
+    if (error) throw toAppError(error, 'Reporting that the money was not collected');
+  }
+
+  /** The GM takes the money in; this is what pays the bill. */
+  async confirmCollection(collectionId: string, note?: string): Promise<void> {
+    const { error } = await supabase.rpc('confirm_collection', {
+      p_collection_id: collectionId,
+      p_note: note?.trim() || undefined,
+    });
+    if (error) throw toAppError(error, 'Taking the money in');
+  }
+
+  async cancelCollection(collectionId: string, reason: string): Promise<void> {
+    const { error } = await supabase.rpc('cancel_collection', {
+      p_collection_id: collectionId,
+      p_reason: reason,
+    });
+    if (error) throw toAppError(error, 'Taking the collection back');
+  }
+
+  /** Paid at the office or by transfer, with no driver involved (D77). */
+  async recordPayment(billId: string, note?: string): Promise<void> {
+    const { error } = await supabase.rpc('record_payment', {
+      p_bill_id: billId,
+      p_note: note?.trim() || undefined,
+    });
+    if (error) throw toAppError(error, 'Recording the payment');
   }
 }
 

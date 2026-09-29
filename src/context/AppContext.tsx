@@ -94,6 +94,7 @@ export type NavView =
   | 'prices'
   | 'company'
   | 'bills'
+  | 'collections'
   | 'ceoPanel'
   | 'gmPanel'
   | 'managerPanel'

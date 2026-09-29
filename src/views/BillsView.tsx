@@ -6,6 +6,7 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Field, Input, Textarea } from '../components/ui/Field';
 import { BillDocument } from '../components/billing/BillDocument';
+import { CollectionPanel } from '../components/billing/CollectionPanel';
 import { useAuth } from '../context/AuthContext';
 import { billingService } from '../services/BillingService';
 import { pricingService } from '../services/PricingService';
@@ -348,6 +349,8 @@ const BillScreen: React.FC<{ id: string; onBack: () => void }> = ({ id, onBack }
             .join('; ')}
         </p>
       )}
+
+      <CollectionPanel bill={bill} onChanged={() => void load()} />
 
       <div className="overflow-x-auto pb-4">
         <BillDocument bill={bill} logoUrl={logoUrl} />

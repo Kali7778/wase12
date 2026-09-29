@@ -9,6 +9,7 @@ import {
   DollarSign,
   FileStack,
   Copy,
+  HandCoins,
   History,
   LayoutDashboard,
   Navigation,
@@ -111,6 +112,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
           // Asking and answering: the warehouse asks the office, a driver
           // asks the warehouse, and supervisors can step in either way.
           roles: ['ceo', 'gm', 'manager', 'admin', 'warehouse', 'driver'],
+        },
+        {
+          id: 'collections',
+          label: 'Collections',
+          icon: HandCoins,
+          // Money a driver has been sent to fetch. A driver sees their own
+          // jobs; the GM sends them out and takes the money in (D76). It
+          // belongs with the day's work, not with the paperwork.
+          roles: ['ceo', 'gm', 'manager', 'admin', 'driver'],
         },
         {
           id: 'talab',
