@@ -24,6 +24,7 @@ import { PricesView } from './views/PricesView';
 import { CompanyView } from './views/CompanyView';
 import { BillsView } from './views/BillsView';
 import { CollectionsView } from './views/CollectionsView';
+import { TraceView } from './views/TraceView';
 import { ReissuesView } from './views/ReissuesView';
 import { RequestsView } from './views/RequestsView';
 import { DashboardView } from './views/DashboardView';
@@ -91,6 +92,8 @@ const MainLayout: React.FC = () => {
         return <BillsView />;
       case 'collections':
         return <CollectionsView />;
+      case 'trace':
+        return <TraceView />;
       case 'reissues':
         return <ReissuesView />;
       case 'requests':

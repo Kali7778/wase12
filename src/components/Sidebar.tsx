@@ -161,6 +161,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
           roles: ['ceo', 'gm', 'manager', 'admin', 'warehouse'],
         },
         {
+          id: 'trace',
+          label: 'Track by SO',
+          icon: Route,
+          // One sales order often arrives on several slips; this follows
+          // all of them from the supplier's claim to the customer (D80).
+          roles: ['ceo', 'gm', 'manager', 'admin', 'warehouse'],
+        },
+        {
           id: 'stockOut',
           label: 'Stock Out',
           icon: PackageMinus,

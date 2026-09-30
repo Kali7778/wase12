@@ -151,6 +151,13 @@ export type Database = {
             referencedRelation: "stock_movements";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "bill_stock_movements_stock_movement_id_fkey";
+            columns: ["stock_movement_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace_movements";
+            referencedColumns: ["movement_id"];
+          },
         ];
       };
       bills: {
@@ -279,6 +286,20 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "v_reissue_register";
             referencedColumns: ["replaced_dn_id"];
+          },
+          {
+            foreignKeyName: "bills_delivery_note_id_fkey";
+            columns: ["delivery_note_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "bills_delivery_note_id_fkey";
+            columns: ["delivery_note_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace_movements";
+            referencedColumns: ["delivery_note_id"];
           },
           {
             foreignKeyName: "bills_delivery_note_id_fkey";
@@ -485,6 +506,20 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "v_reissue_register";
             referencedColumns: ["replaced_dn_id"];
+          },
+          {
+            foreignKeyName: "delivery_note_lines_delivery_note_id_fkey";
+            columns: ["delivery_note_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "delivery_note_lines_delivery_note_id_fkey";
+            columns: ["delivery_note_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace_movements";
+            referencedColumns: ["delivery_note_id"];
           },
           {
             foreignKeyName: "delivery_note_lines_delivery_note_id_fkey";
@@ -770,6 +805,20 @@ export type Database = {
             foreignKeyName: "delivery_notes_replaces_dn_id_fkey";
             columns: ["replaces_dn_id"];
             isOneToOne: false;
+            referencedRelation: "v_slip_trace";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "delivery_notes_replaces_dn_id_fkey";
+            columns: ["replaces_dn_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace_movements";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "delivery_notes_replaces_dn_id_fkey";
+            columns: ["replaces_dn_id"];
+            isOneToOne: false;
             referencedRelation: "v_talab_orders";
             referencedColumns: ["delivery_note_id"];
           },
@@ -888,6 +937,20 @@ export type Database = {
             foreignKeyName: "dn_reissue_submissions_created_dn_id_fkey";
             columns: ["created_dn_id"];
             isOneToOne: false;
+            referencedRelation: "v_slip_trace";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "dn_reissue_submissions_created_dn_id_fkey";
+            columns: ["created_dn_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace_movements";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "dn_reissue_submissions_created_dn_id_fkey";
+            columns: ["created_dn_id"];
+            isOneToOne: false;
             referencedRelation: "v_talab_orders";
             referencedColumns: ["delivery_note_id"];
           },
@@ -925,6 +988,20 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "v_reissue_register";
             referencedColumns: ["replaced_dn_id"];
+          },
+          {
+            foreignKeyName: "dn_reissue_submissions_original_dn_id_fkey";
+            columns: ["original_dn_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "dn_reissue_submissions_original_dn_id_fkey";
+            columns: ["original_dn_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace_movements";
+            referencedColumns: ["delivery_note_id"];
           },
           {
             foreignKeyName: "dn_reissue_submissions_original_dn_id_fkey";
@@ -1024,6 +1101,20 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "v_reissue_register";
             referencedColumns: ["replaced_dn_id"];
+          },
+          {
+            foreignKeyName: "dn_workflow_log_delivery_note_id_fkey";
+            columns: ["delivery_note_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "dn_workflow_log_delivery_note_id_fkey";
+            columns: ["delivery_note_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace_movements";
+            referencedColumns: ["delivery_note_id"];
           },
           {
             foreignKeyName: "dn_workflow_log_delivery_note_id_fkey";
@@ -1313,6 +1404,20 @@ export type Database = {
             foreignKeyName: "slip_requests_delivery_note_id_fkey";
             columns: ["delivery_note_id"];
             isOneToOne: false;
+            referencedRelation: "v_slip_trace";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "slip_requests_delivery_note_id_fkey";
+            columns: ["delivery_note_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace_movements";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "slip_requests_delivery_note_id_fkey";
+            columns: ["delivery_note_id"];
+            isOneToOne: false;
             referencedRelation: "v_talab_orders";
             referencedColumns: ["delivery_note_id"];
           },
@@ -1343,6 +1448,20 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "v_reissue_register";
             referencedColumns: ["replaced_dn_id"];
+          },
+          {
+            foreignKeyName: "slip_requests_fulfilled_dn_id_fkey";
+            columns: ["fulfilled_dn_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "slip_requests_fulfilled_dn_id_fkey";
+            columns: ["fulfilled_dn_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace_movements";
+            referencedColumns: ["delivery_note_id"];
           },
           {
             foreignKeyName: "slip_requests_fulfilled_dn_id_fkey";
@@ -1429,6 +1548,20 @@ export type Database = {
             referencedColumns: ["lot_id"];
           },
           {
+            foreignKeyName: "stock_movements_delivery_note_line_id_fkey";
+            columns: ["delivery_note_line_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace";
+            referencedColumns: ["line_id"];
+          },
+          {
+            foreignKeyName: "stock_movements_delivery_note_line_id_fkey";
+            columns: ["delivery_note_line_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace_movements";
+            referencedColumns: ["line_id"];
+          },
+          {
             foreignKeyName: "stock_movements_item_id_fkey";
             columns: ["item_id"];
             isOneToOne: false;
@@ -1462,6 +1595,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "stock_movements";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "stock_movements_reversal_of_fkey";
+            columns: ["reversal_of"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace_movements";
+            referencedColumns: ["movement_id"];
           },
           {
             foreignKeyName: "stock_movements_warehouse_id_fkey";
@@ -1764,6 +1904,20 @@ export type Database = {
             foreignKeyName: "bills_delivery_note_id_fkey";
             columns: ["delivery_note_id"];
             isOneToOne: false;
+            referencedRelation: "v_slip_trace";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "bills_delivery_note_id_fkey";
+            columns: ["delivery_note_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace_movements";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "bills_delivery_note_id_fkey";
+            columns: ["delivery_note_id"];
+            isOneToOne: false;
             referencedRelation: "v_talab_orders";
             referencedColumns: ["delivery_note_id"];
           },
@@ -1909,6 +2063,20 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "v_reissue_register";
             referencedColumns: ["replaced_dn_id"];
+          },
+          {
+            foreignKeyName: "delivery_note_lines_delivery_note_id_fkey";
+            columns: ["delivery_note_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "delivery_note_lines_delivery_note_id_fkey";
+            columns: ["delivery_note_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace_movements";
+            referencedColumns: ["delivery_note_id"];
           },
           {
             foreignKeyName: "delivery_note_lines_delivery_note_id_fkey";
@@ -2115,6 +2283,20 @@ export type Database = {
             foreignKeyName: "dn_workflow_log_delivery_note_id_fkey";
             columns: ["delivery_note_id"];
             isOneToOne: false;
+            referencedRelation: "v_slip_trace";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "dn_workflow_log_delivery_note_id_fkey";
+            columns: ["delivery_note_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace_movements";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "dn_workflow_log_delivery_note_id_fkey";
+            columns: ["delivery_note_id"];
+            isOneToOne: false;
             referencedRelation: "v_talab_orders";
             referencedColumns: ["delivery_note_id"];
           },
@@ -2187,6 +2369,20 @@ export type Database = {
             foreignKeyName: "slip_requests_delivery_note_id_fkey";
             columns: ["delivery_note_id"];
             isOneToOne: false;
+            referencedRelation: "v_slip_trace";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "slip_requests_delivery_note_id_fkey";
+            columns: ["delivery_note_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace_movements";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "slip_requests_delivery_note_id_fkey";
+            columns: ["delivery_note_id"];
+            isOneToOne: false;
             referencedRelation: "v_talab_orders";
             referencedColumns: ["delivery_note_id"];
           },
@@ -2222,6 +2418,20 @@ export type Database = {
             foreignKeyName: "slip_requests_fulfilled_dn_id_fkey";
             columns: ["fulfilled_dn_id"];
             isOneToOne: false;
+            referencedRelation: "v_slip_trace";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "slip_requests_fulfilled_dn_id_fkey";
+            columns: ["fulfilled_dn_id"];
+            isOneToOne: false;
+            referencedRelation: "v_slip_trace_movements";
+            referencedColumns: ["delivery_note_id"];
+          },
+          {
+            foreignKeyName: "slip_requests_fulfilled_dn_id_fkey";
+            columns: ["fulfilled_dn_id"];
+            isOneToOne: false;
             referencedRelation: "v_talab_orders";
             referencedColumns: ["delivery_note_id"];
           },
@@ -2233,6 +2443,59 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      v_slip_trace: {
+        Row: {
+          arrived_qty: number | null;
+          balance_qty: number | null;
+          delivery_note_id: string | null;
+          dn_number: string | null;
+          in_qty: number | null;
+          item_description: string | null;
+          item_number: string | null;
+          line_id: string | null;
+          line_status: Database["public"]["Enums"]["dn_status"] | null;
+          missing_qty: number | null;
+          out_qty: number | null;
+          pdf_qty: number | null;
+          print_date: string | null;
+          purpose: Database["public"]["Enums"]["dn_purpose"] | null;
+          received_at: string | null;
+          so_number: string | null;
+          talab_bill_cancelled: boolean | null;
+          talab_bill_number: string | null;
+          talab_customer_name: string | null;
+          uom: string | null;
+          uploaded_at: string | null;
+          workflow_status: Database["public"]["Enums"]["dn_workflow_status"] | null;
+        };
+        Relationships: [];
+      };
+      v_slip_trace_movements: {
+        Row: {
+          actor_name: string | null;
+          bill_cancelled: boolean | null;
+          bill_customer_name: string | null;
+          bill_is_walk_in: boolean | null;
+          bill_number: string | null;
+          delivery_note_id: string | null;
+          direction: Database["public"]["Enums"]["movement_direction"] | null;
+          dn_number: string | null;
+          is_reversal: boolean | null;
+          item_description: string | null;
+          item_number: string | null;
+          line_id: string | null;
+          movement_id: string | null;
+          movement_type: Database["public"]["Enums"]["movement_type"] | null;
+          notes: string | null;
+          occurred_at: string | null;
+          qty: number | null;
+          reference_no: string | null;
+          so_number: string | null;
+          uom: string | null;
+          warehouse_name: string | null;
+        };
+        Relationships: [];
       };
       v_talab_orders: {
         Row: {
