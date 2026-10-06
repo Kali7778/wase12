@@ -43,6 +43,9 @@ export interface Bill {
   goodsTotal: number;
   servicesTotal: number;
   total: number;
+  /** How much of it has actually been received, and what is left (D83). */
+  paidAmount: number;
+  outstanding: number;
   paidAt: string | null;
   cancelledAt: string | null;
   cancelReason: string | null;
@@ -166,20 +169,22 @@ export const BILL_KIND_LABEL: Record<BillKind, string> = {
  * states that only exist because somebody is carrying cash: the driver
  * has been sent, and the driver has the money.
  */
-export type BillState = 'paid' | 'with_driver' | 'collected' | 'unpaid' | 'cancelled';
+export type BillState = 'paid' | 'part_paid' | 'with_driver' | 'collected' | 'unpaid' | 'cancelled';
 
 export const billState = (
-  b: Pick<Bill, 'paidAt' | 'cancelledAt' | 'collectionStatus'>,
+  b: Pick<Bill, 'paidAt' | 'cancelledAt' | 'collectionStatus' | 'paidAmount'>,
 ): BillState => {
   if (b.cancelledAt) return 'cancelled';
   if (b.paidAt) return 'paid';
   if (b.collectionStatus === 'collected') return 'collected';
   if (b.collectionStatus === 'with_driver') return 'with_driver';
+  if (b.paidAmount > 0) return 'part_paid';
   return 'unpaid';
 };
 
 export const BILL_STATE_LABEL: Record<BillState, string> = {
   paid: 'Paid',
+  part_paid: 'Part paid',
   with_driver: 'With driver',
   collected: 'Driver has the money',
   unpaid: 'Unpaid',
@@ -188,6 +193,7 @@ export const BILL_STATE_LABEL: Record<BillState, string> = {
 
 export const BILL_STATE_TONE: Record<BillState, 'ok' | 'warn' | 'neutral' | 'info' | 'accent'> = {
   paid: 'ok',
+  part_paid: 'warn',
   with_driver: 'info',
   collected: 'accent',
   unpaid: 'warn',

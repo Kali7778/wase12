@@ -324,7 +324,19 @@ const BillScreen: React.FC<{ id: string; onBack: () => void }> = ({ id, onBack }
       </div>
 
       {cancelling && (
-        <Panel title={`Cancel ${bill.billNumber}`} description={bill.kind === 'stock' ? 'The goods on it go back into stock. The bill stays in the list, marked cancelled.' : 'The bill stays in the list, marked cancelled, and the customer order can be billed again.'}>
+        <Panel
+          title={`Cancel ${bill.billNumber}`}
+          description={[
+            bill.kind === 'stock'
+              ? 'The goods on it go back into stock. The bill stays in the list, marked cancelled.'
+              : 'The bill stays in the list, marked cancelled, and the customer order can be billed again.',
+            bill.paidAmount > 0
+              ? `${formatSar(bill.paidAmount)} SAR has already been received against it — hand that back and say so below, because the bill and its payments both leave the customer's account.`
+              : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
           <div className="max-w-xl space-y-3">
             <Field label="Why is it being cancelled?" htmlFor="cancel-reason" required>
               <Textarea id="cancel-reason" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} />

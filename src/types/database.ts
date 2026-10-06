@@ -123,6 +123,92 @@ export type Database = {
           },
         ];
       };
+      bill_payments: {
+        Row: {
+          amount: number;
+          bill_id: string;
+          collection_id: string | null;
+          created_at: string;
+          created_by: string;
+          id: string;
+          note: string | null;
+          paid_on: string;
+          source: Database["public"]["Enums"]["payment_source"];
+        };
+        Insert: {
+          amount: number;
+          bill_id: string;
+          collection_id?: string | null;
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          note?: string | null;
+          paid_on?: string;
+          source: Database["public"]["Enums"]["payment_source"];
+        };
+        Update: {
+          amount?: number;
+          bill_id?: string;
+          collection_id?: string | null;
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          note?: string | null;
+          paid_on?: string;
+          source?: Database["public"]["Enums"]["payment_source"];
+        };
+        Relationships: [
+          {
+            foreignKeyName: "bill_payments_bill_id_fkey";
+            columns: ["bill_id"];
+            isOneToOne: false;
+            referencedRelation: "bills";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bill_payments_bill_id_fkey";
+            columns: ["bill_id"];
+            isOneToOne: false;
+            referencedRelation: "v_bills";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bill_payments_collection_id_fkey";
+            columns: ["collection_id"];
+            isOneToOne: false;
+            referencedRelation: "payment_collections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bill_payments_collection_id_fkey";
+            columns: ["collection_id"];
+            isOneToOne: false;
+            referencedRelation: "v_bills";
+            referencedColumns: ["collection_id"];
+          },
+          {
+            foreignKeyName: "bill_payments_collection_id_fkey";
+            columns: ["collection_id"];
+            isOneToOne: false;
+            referencedRelation: "v_payment_collections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bill_payments_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "user_tbl";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bill_payments_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
+        ];
+      };
       bill_stock_movements: {
         Row: {
           bill_line_id: string;
@@ -239,6 +325,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "bills_cancelled_by_fkey";
+            columns: ["cancelled_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
+          {
             foreignKeyName: "bills_created_by_fkey";
             columns: ["created_by"];
             isOneToOne: false;
@@ -246,11 +339,25 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "bills_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
+          {
             foreignKeyName: "bills_customer_id_fkey";
             columns: ["customer_id"];
             isOneToOne: false;
             referencedRelation: "customers";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bills_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "v_customer_balances";
+            referencedColumns: ["customer_id"];
           },
           {
             foreignKeyName: "bills_customer_id_fkey";
@@ -315,6 +422,13 @@ export type Database = {
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "bills_paid_by_fkey";
+            columns: ["paid_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
         ];
       };
       company_profile: {
@@ -365,6 +479,13 @@ export type Database = {
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "company_profile_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
         ];
       };
       customers: {
@@ -414,6 +535,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "customers_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
         ];
       };
@@ -562,6 +690,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "delivery_note_lines_received_by_fkey";
+            columns: ["received_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
         ];
       };
@@ -725,11 +860,25 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "delivery_notes_assigned_driver_id_fkey";
+            columns: ["assigned_driver_id"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
+          {
             foreignKeyName: "delivery_notes_assigned_to_fkey";
             columns: ["assigned_to"];
             isOneToOne: false;
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "delivery_notes_assigned_to_fkey";
+            columns: ["assigned_to"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
           {
             foreignKeyName: "delivery_notes_created_by_fkey";
@@ -739,11 +888,25 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "delivery_notes_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
+          {
             foreignKeyName: "delivery_notes_customer_id_fkey";
             columns: ["customer_id"];
             isOneToOne: false;
             referencedRelation: "customers";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "delivery_notes_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "v_customer_balances";
+            referencedColumns: ["customer_id"];
           },
           {
             foreignKeyName: "delivery_notes_customer_id_fkey";
@@ -760,8 +923,29 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "delivery_notes_delivered_by_fkey";
+            columns: ["delivered_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
+          {
             foreignKeyName: "delivery_notes_driver_sent_by_fkey";
             columns: ["driver_sent_by"];
+            isOneToOne: false;
+            referencedRelation: "user_tbl";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "delivery_notes_driver_sent_by_fkey";
+            columns: ["driver_sent_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
+          {
+            foreignKeyName: "delivery_notes_holder_id_fkey";
+            columns: ["holder_id"];
             isOneToOne: false;
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
@@ -770,8 +954,8 @@ export type Database = {
             foreignKeyName: "delivery_notes_holder_id_fkey";
             columns: ["holder_id"];
             isOneToOne: false;
-            referencedRelation: "user_tbl";
-            referencedColumns: ["id"];
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
           {
             foreignKeyName: "delivery_notes_replaces_dn_id_fkey";
@@ -830,11 +1014,25 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "delivery_notes_sent_by_fkey";
+            columns: ["sent_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
+          {
             foreignKeyName: "delivery_notes_so_override_by_fkey";
             columns: ["so_override_by"];
             isOneToOne: false;
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "delivery_notes_so_override_by_fkey";
+            columns: ["so_override_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
           {
             foreignKeyName: "delivery_notes_supplier_id_fkey";
@@ -962,6 +1160,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "dn_reissue_submissions_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
+          {
             foreignKeyName: "dn_reissue_submissions_original_dn_id_fkey";
             columns: ["original_dn_id"];
             isOneToOne: false;
@@ -1017,6 +1222,13 @@ export type Database = {
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "dn_reissue_submissions_submitted_by_fkey";
+            columns: ["submitted_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
         ];
       };
       dn_workflow_log: {
@@ -1068,11 +1280,25 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "dn_workflow_log_actor_fkey";
+            columns: ["actor"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
+          {
             foreignKeyName: "dn_workflow_log_assigned_to_fkey";
             columns: ["assigned_to"];
             isOneToOne: false;
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "dn_workflow_log_assigned_to_fkey";
+            columns: ["assigned_to"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
           {
             foreignKeyName: "dn_workflow_log_delivery_note_id_fkey";
@@ -1129,6 +1355,119 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "dn_workflow_log_holder_from_fkey";
+            columns: ["holder_from"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
+        ];
+      };
+      employee_ledger: {
+        Row: {
+          amount: number;
+          bill_id: string | null;
+          collection_id: string | null;
+          created_at: string;
+          created_by: string;
+          description: string;
+          employee_id: string;
+          id: string;
+          kind: Database["public"]["Enums"]["employee_ledger_kind"];
+          occurred_on: string;
+          remarks: string | null;
+        };
+        Insert: {
+          amount: number;
+          bill_id?: string | null;
+          collection_id?: string | null;
+          created_at?: string;
+          created_by: string;
+          description: string;
+          employee_id: string;
+          id?: string;
+          kind: Database["public"]["Enums"]["employee_ledger_kind"];
+          occurred_on?: string;
+          remarks?: string | null;
+        };
+        Update: {
+          amount?: number;
+          bill_id?: string | null;
+          collection_id?: string | null;
+          created_at?: string;
+          created_by?: string;
+          description?: string;
+          employee_id?: string;
+          id?: string;
+          kind?: Database["public"]["Enums"]["employee_ledger_kind"];
+          occurred_on?: string;
+          remarks?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "employee_ledger_bill_id_fkey";
+            columns: ["bill_id"];
+            isOneToOne: false;
+            referencedRelation: "bills";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "employee_ledger_bill_id_fkey";
+            columns: ["bill_id"];
+            isOneToOne: false;
+            referencedRelation: "v_bills";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "employee_ledger_collection_id_fkey";
+            columns: ["collection_id"];
+            isOneToOne: false;
+            referencedRelation: "payment_collections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "employee_ledger_collection_id_fkey";
+            columns: ["collection_id"];
+            isOneToOne: false;
+            referencedRelation: "v_bills";
+            referencedColumns: ["collection_id"];
+          },
+          {
+            foreignKeyName: "employee_ledger_collection_id_fkey";
+            columns: ["collection_id"];
+            isOneToOne: false;
+            referencedRelation: "v_payment_collections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "employee_ledger_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "user_tbl";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "employee_ledger_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
+          {
+            foreignKeyName: "employee_ledger_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "user_tbl";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "employee_ledger_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
         ];
       };
@@ -1193,6 +1532,13 @@ export type Database = {
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "item_prices_set_by_fkey";
+            columns: ["set_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
         ];
       };
       items: {
@@ -1243,6 +1589,7 @@ export type Database = {
           driver_id: string;
           id: string;
           note: string | null;
+          received_amount: number | null;
           received_at: string | null;
           received_by: string | null;
           received_note: string | null;
@@ -1259,6 +1606,7 @@ export type Database = {
           driver_id: string;
           id?: string;
           note?: string | null;
+          received_amount?: number | null;
           received_at?: string | null;
           received_by?: string | null;
           received_note?: string | null;
@@ -1275,6 +1623,7 @@ export type Database = {
           driver_id?: string;
           id?: string;
           note?: string | null;
+          received_amount?: number | null;
           received_at?: string | null;
           received_by?: string | null;
           received_note?: string | null;
@@ -1287,6 +1636,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payment_collections_assigned_by_fkey";
+            columns: ["assigned_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
           {
             foreignKeyName: "payment_collections_bill_id_fkey";
@@ -1310,11 +1666,25 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "payment_collections_driver_id_fkey";
+            columns: ["driver_id"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
+          {
             foreignKeyName: "payment_collections_received_by_fkey";
             columns: ["received_by"];
             isOneToOne: false;
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payment_collections_received_by_fkey";
+            columns: ["received_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
         ];
       };
@@ -1371,6 +1741,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "slip_requests_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
           {
             foreignKeyName: "slip_requests_delivery_note_id_fkey";
@@ -1477,6 +1854,13 @@ export type Database = {
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "slip_requests_requested_by_fkey";
+            columns: ["requested_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
         ];
       };
       stock_movements: {
@@ -1532,6 +1916,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "stock_movements_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
           {
             foreignKeyName: "stock_movements_delivery_note_line_id_fkey";
@@ -1687,6 +2078,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "upload_batches_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
         ];
       };
@@ -1852,6 +2250,8 @@ export type Database = {
           is_walk_in: boolean | null;
           kind: Database["public"]["Enums"]["bill_kind"] | null;
           note: string | null;
+          outstanding: number | null;
+          paid_amount: number | null;
           paid_at: string | null;
           seq: number | null;
           services_total: number | null;
@@ -1864,6 +2264,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "customers";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bills_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "v_customer_balances";
+            referencedColumns: ["customer_id"];
           },
           {
             foreignKeyName: "bills_customer_id_fkey";
@@ -1920,6 +2327,123 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "v_talab_orders";
             referencedColumns: ["delivery_note_id"];
+          },
+        ];
+      };
+      v_customer_balances: {
+        Row: {
+          balance: number | null;
+          billed: number | null;
+          customer_id: string | null;
+          customer_name: string | null;
+          customer_terms: Database["public"]["Enums"]["customer_terms"] | null;
+          is_active: boolean | null;
+          oldest_open: string | null;
+          open_bills: number | null;
+          paid: number | null;
+          phone: string | null;
+        };
+        Relationships: [];
+      };
+      v_customer_ledger: {
+        Row: {
+          balance: number | null;
+          bill_id: string | null;
+          credit: number | null;
+          customer_id: string | null;
+          customer_name: string | null;
+          customer_terms: Database["public"]["Enums"]["customer_terms"] | null;
+          debit: number | null;
+          dn_number: string | null;
+          entry_at: string | null;
+          entry_date: string | null;
+          entry_id: string | null;
+          entry_kind: string | null;
+          note: string | null;
+          reference: string | null;
+        };
+        Relationships: [];
+      };
+      v_employee_balances: {
+        Row: {
+          balance: number | null;
+          email: string | null;
+          employee_id: string | null;
+          employee_name: string | null;
+          is_active: boolean | null;
+          last_entry_on: string | null;
+          owed: number | null;
+          settled: number | null;
+        };
+        Relationships: [];
+      };
+      v_employee_ledger: {
+        Row: {
+          amount: number | null;
+          balance: number | null;
+          bill_id: string | null;
+          bill_number: string | null;
+          collection_id: string | null;
+          created_at: string | null;
+          created_by_name: string | null;
+          description: string | null;
+          employee_id: string | null;
+          employee_name: string | null;
+          id: string | null;
+          kind: Database["public"]["Enums"]["employee_ledger_kind"] | null;
+          occurred_on: string | null;
+          remarks: string | null;
+          signed_amount: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "employee_ledger_bill_id_fkey";
+            columns: ["bill_id"];
+            isOneToOne: false;
+            referencedRelation: "bills";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "employee_ledger_bill_id_fkey";
+            columns: ["bill_id"];
+            isOneToOne: false;
+            referencedRelation: "v_bills";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "employee_ledger_collection_id_fkey";
+            columns: ["collection_id"];
+            isOneToOne: false;
+            referencedRelation: "payment_collections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "employee_ledger_collection_id_fkey";
+            columns: ["collection_id"];
+            isOneToOne: false;
+            referencedRelation: "v_bills";
+            referencedColumns: ["collection_id"];
+          },
+          {
+            foreignKeyName: "employee_ledger_collection_id_fkey";
+            columns: ["collection_id"];
+            isOneToOne: false;
+            referencedRelation: "v_payment_collections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "employee_ledger_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "user_tbl";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "employee_ledger_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
         ];
       };
@@ -2155,6 +2679,13 @@ export type Database = {
             foreignKeyName: "bills_customer_id_fkey";
             columns: ["customer_id"];
             isOneToOne: false;
+            referencedRelation: "v_customer_balances";
+            referencedColumns: ["customer_id"];
+          },
+          {
+            foreignKeyName: "bills_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
             referencedRelation: "v_talab_orders";
             referencedColumns: ["customer_id"];
           },
@@ -2178,6 +2709,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payment_collections_driver_id_fkey";
+            columns: ["driver_id"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
         ];
       };
@@ -2245,11 +2783,25 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "dn_workflow_log_actor_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
+          {
             foreignKeyName: "dn_workflow_log_assigned_to_fkey";
             columns: ["to_id"];
             isOneToOne: false;
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "dn_workflow_log_assigned_to_fkey";
+            columns: ["to_id"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
           {
             foreignKeyName: "dn_workflow_log_delivery_note_id_fkey";
@@ -2307,6 +2859,13 @@ export type Database = {
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "dn_workflow_log_holder_from_fkey";
+            columns: ["from_id"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
+          },
         ];
       };
       v_slip_requests: {
@@ -2336,6 +2895,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "slip_requests_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
           {
             foreignKeyName: "slip_requests_delivery_note_id_fkey";
@@ -2441,6 +3007,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "user_tbl";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "slip_requests_requested_by_fkey";
+            columns: ["requested_by"];
+            isOneToOne: false;
+            referencedRelation: "v_employee_balances";
+            referencedColumns: ["employee_id"];
           },
         ];
       };
@@ -2587,6 +3160,35 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      add_employee_entry: {
+        Args: {
+          p_amount: number;
+          p_description: string;
+          p_employee_id: string;
+          p_kind: Database["public"]["Enums"]["employee_ledger_kind"];
+          p_occurred_on?: string;
+          p_remarks?: string;
+        };
+        Returns: {
+          amount: number;
+          bill_id: string | null;
+          collection_id: string | null;
+          created_at: string;
+          created_by: string;
+          description: string;
+          employee_id: string;
+          id: string;
+          kind: Database["public"]["Enums"]["employee_ledger_kind"];
+          occurred_on: string;
+          remarks: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "employee_ledger";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       approve_reissue: {
         Args: {
           p_dn_number: string;
@@ -2665,6 +3267,7 @@ export type Database = {
           driver_id: string;
           id: string;
           note: string | null;
+          received_amount: number | null;
           received_at: string | null;
           received_by: string | null;
           received_note: string | null;
@@ -2722,6 +3325,7 @@ export type Database = {
           driver_id: string;
           id: string;
           note: string | null;
+          received_amount: number | null;
           received_at: string | null;
           received_by: string | null;
           received_note: string | null;
@@ -2770,7 +3374,13 @@ export type Database = {
         }[];
       };
       confirm_collection: {
-        Args: { p_collection_id: string; p_note?: string };
+        Args: {
+          p_amount?: number;
+          p_collection_id: string;
+          p_description?: string;
+          p_note?: string;
+          p_shortfall_owner?: string;
+        };
         Returns: {
           bill_number: string;
           cancel_reason: string | null;
@@ -3081,6 +3691,7 @@ export type Database = {
           driver_id: string;
           id: string;
           note: string | null;
+          received_amount: number | null;
           received_at: string | null;
           received_by: string | null;
           received_note: string | null;
@@ -3106,6 +3717,7 @@ export type Database = {
           driver_id: string;
           id: string;
           note: string | null;
+          received_amount: number | null;
           received_at: string | null;
           received_by: string | null;
           received_note: string | null;
@@ -3373,7 +3985,7 @@ export type Database = {
         };
       };
       record_payment: {
-        Args: { p_bill_id: string; p_note?: string };
+        Args: { p_amount?: number; p_bill_id: string; p_note?: string };
         Returns: {
           bill_number: string;
           cancel_reason: string | null;
@@ -3600,6 +4212,7 @@ export type Database = {
         | "received"
         | "replaced"
         | "delivered";
+      employee_ledger_kind: "shortfall" | "charge" | "repayment" | "salary_deduction";
       extraction_method: "pdf_text" | "vision" | "manual";
       movement_direction: "IN" | "OUT";
       movement_type:
@@ -3610,6 +4223,7 @@ export type Database = {
         | "transfer_in"
         | "adjustment"
         | "reversal";
+      payment_source: "collection" | "office";
       slip_request_target: "office" | "warehouse";
       slip_request_type: "slip_for_delivery" | "lost_slip" | "damaged_slip" | "other";
       user_role:
@@ -3765,6 +4379,7 @@ export const Constants = {
         "replaced",
         "delivered",
       ],
+      employee_ledger_kind: ["shortfall", "charge", "repayment", "salary_deduction"],
       extraction_method: ["pdf_text", "vision", "manual"],
       movement_direction: ["IN", "OUT"],
       movement_type: [
@@ -3776,6 +4391,7 @@ export const Constants = {
         "adjustment",
         "reversal",
       ],
+      payment_source: ["collection", "office"],
       slip_request_target: ["office", "warehouse"],
       slip_request_type: ["slip_for_delivery", "lost_slip", "damaged_slip", "other"],
       user_role: ["ceo", "gm", "manager", "admin", "dispatcher", "warehouse", "driver", "viewer"],

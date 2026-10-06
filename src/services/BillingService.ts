@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { toAppError } from '../lib/errors';
+import type { ShortfallOwner } from '../models/ledger';
 import type {
   Bill,
   BillCompany,
@@ -33,6 +34,8 @@ const toBill = (row: BillRow): Bill => ({
   goodsTotal: Number(row.goods_total ?? 0),
   servicesTotal: Number(row.services_total ?? 0),
   total: Number(row.total ?? 0),
+  paidAmount: Number(row.paid_amount ?? 0),
+  outstanding: Number(row.outstanding ?? 0),
   paidAt: row.paid_at,
   cancelledAt: row.cancelled_at,
   cancelReason: row.cancel_reason,
@@ -241,11 +244,24 @@ class BillingServiceImpl {
     if (error) throw toAppError(error, 'Reporting that the money was not collected');
   }
 
-  /** The GM takes the money in; this is what pays the bill. */
-  async confirmCollection(collectionId: string, note?: string): Promise<void> {
+  /**
+   * The GM takes the money in. Less than the whole amount is allowed, but
+   * then the GM must say where the rest sits — with the driver, who then
+   * owes it, or still with the customer, whose bill stays open (D82, D83).
+   */
+  async confirmCollection(input: {
+    collectionId: string;
+    amount: number;
+    shortfallOwner?: ShortfallOwner;
+    description?: string;
+    note?: string;
+  }): Promise<void> {
     const { error } = await supabase.rpc('confirm_collection', {
-      p_collection_id: collectionId,
-      p_note: note?.trim() || undefined,
+      p_collection_id: input.collectionId,
+      p_amount: input.amount,
+      p_shortfall_owner: input.shortfallOwner,
+      p_description: input.description?.trim() || undefined,
+      p_note: input.note?.trim() || undefined,
     });
     if (error) throw toAppError(error, 'Taking the money in');
   }
@@ -258,10 +274,14 @@ class BillingServiceImpl {
     if (error) throw toAppError(error, 'Taking the collection back');
   }
 
-  /** Paid at the office or by transfer, with no driver involved (D77). */
-  async recordPayment(billId: string, note?: string): Promise<void> {
+  /**
+   * Paid at the office or by transfer, with no driver involved (D77).
+   * Leaving the amount out settles whatever is still outstanding.
+   */
+  async recordPayment(billId: string, amount?: number, note?: string): Promise<void> {
     const { error } = await supabase.rpc('record_payment', {
       p_bill_id: billId,
+      p_amount: amount,
       p_note: note?.trim() || undefined,
     });
     if (error) throw toAppError(error, 'Recording the payment');

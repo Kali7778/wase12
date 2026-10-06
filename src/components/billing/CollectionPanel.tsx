@@ -9,6 +9,7 @@ import { billingService } from '../../services/BillingService';
 import { deliveryNoteService } from '../../services/DeliveryNoteService';
 import { formatSar } from '../../models/pricing';
 import type { Recipient } from '../../models/deliveryNote';
+import type { ShortfallOwner } from '../../models/ledger';
 import {
   COLLECTION_LABEL,
   COLLECTION_TONE,
@@ -38,8 +39,23 @@ export const CollectionPanel: React.FC<CollectionPanelProps> = ({ bill, onChange
   const [open, setOpen] = useState<'send' | 'record' | 'takeBack' | 'receive' | null>(null);
   const [driverId, setDriverId] = useState('');
   const [text, setText] = useState('');
+  const [amount, setAmount] = useState('');
+  const [owner, setOwner] = useState<ShortfallOwner | null>(null);
+  const [why, setWhy] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // What is still to be collected on this bill, and what the amount typed
+  // in leaves behind.
+  const outstanding = bill.outstanding;
+  const typed = Number(amount);
+  const amountError =
+    amount.trim() === '' || !Number.isFinite(typed) || typed <= 0
+      ? 'Enter the amount, for example 500.00.'
+      : typed > outstanding
+        ? `At most ${formatSar(outstanding)}`
+        : null;
+  const shortfall = amountError === null ? Math.round((outstanding - typed) * 100) / 100 : 0;
 
   const load = useCallback(async () => {
     try {
@@ -68,6 +84,16 @@ export const CollectionPanel: React.FC<CollectionPanelProps> = ({ bill, onChange
   const live = history.find((c) => c.status === 'with_driver' || c.status === 'collected') ?? null;
   const closed = history.filter((c) => c !== live);
 
+  const openPanel = (which: 'send' | 'record' | 'takeBack' | 'receive') => {
+    const next = open === which ? null : which;
+    setOpen(next);
+    setText('');
+    setWhy('');
+    setOwner(null);
+    // Pre-filled with what is owed: the usual case is the whole amount.
+    setAmount(next === 'record' || next === 'receive' ? String(bill.outstanding) : '');
+  };
+
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
     setError(null);
@@ -95,7 +121,9 @@ export const CollectionPanel: React.FC<CollectionPanelProps> = ({ bill, onChange
           ? `Paid on ${new Date(bill.paidAt as string).toLocaleDateString()}.`
           : cancelled
             ? 'The bill is cancelled, so there is nothing to collect.'
-            : `${formatSar(bill.total)} SAR to collect from ${bill.customerName}.`
+            : bill.paidAmount > 0
+              ? `${formatSar(bill.paidAmount)} of ${formatSar(bill.total)} SAR received — ${formatSar(outstanding)} still to collect from ${bill.customerName}.`
+              : `${formatSar(bill.total)} SAR to collect from ${bill.customerName}.`
       }
     >
       <div className="space-y-3">
@@ -130,21 +158,21 @@ export const CollectionPanel: React.FC<CollectionPanelProps> = ({ bill, onChange
           <div className="flex flex-wrap gap-2">
             {!live && (
               <>
-                <Button variant="primary" icon={HandCoins} onClick={() => setOpen(open === 'record' ? null : 'record')}>
+                <Button variant="primary" icon={HandCoins} onClick={() => openPanel('record')}>
                   Record payment
                 </Button>
-                <Button variant="secondary" icon={Truck} onClick={() => setOpen(open === 'send' ? null : 'send')}>
+                <Button variant="secondary" icon={Truck} onClick={() => openPanel('send')}>
                   Send with a driver
                 </Button>
               </>
             )}
             {live?.status === 'with_driver' && (
-              <Button variant="secondary" icon={Undo2} onClick={() => setOpen(open === 'takeBack' ? null : 'takeBack')}>
+              <Button variant="secondary" icon={Undo2} onClick={() => openPanel('takeBack')}>
                 Take it back
               </Button>
             )}
             {live?.status === 'collected' && (
-              <Button variant="primary" icon={BadgeCheck} onClick={() => setOpen(open === 'receive' ? null : 'receive')}>
+              <Button variant="primary" icon={BadgeCheck} onClick={() => openPanel('receive')}>
                 Money received
               </Button>
             )}
@@ -156,7 +184,22 @@ export const CollectionPanel: React.FC<CollectionPanelProps> = ({ bill, onChange
         )}
 
         {open === 'record' && (
-          <div className="max-w-xl space-y-2">
+          <div className="max-w-xl grid gap-2 sm:grid-cols-2">
+            <Field
+              label="Amount received (SAR)"
+              htmlFor="pay-amount"
+              required
+              hint={`${formatSar(outstanding)} outstanding. Less is allowed — the rest stays on the bill.`}
+              error={amountError ?? undefined}
+            >
+              <Input
+                id="pay-amount"
+                inputMode="decimal"
+                invalid={amountError !== null}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </Field>
             <Field
               label="How it was paid (optional)"
               htmlFor="pay-note"
@@ -164,9 +207,16 @@ export const CollectionPanel: React.FC<CollectionPanelProps> = ({ bill, onChange
             >
               <Input id="pay-note" value={text} onChange={(e) => setText(e.target.value)} />
             </Field>
-            <Button variant="primary" loading={busy} onClick={() => void run(() => billingService.recordPayment(bill.id, text))}>
-              Mark this bill paid
-            </Button>
+            <div className="sm:col-span-2">
+              <Button
+                variant="primary"
+                loading={busy}
+                disabled={amountError !== null}
+                onClick={() => void run(() => billingService.recordPayment(bill.id, Number(amount), text))}
+              >
+                {Number(amount) >= outstanding ? 'Mark this bill paid' : `Take in ${formatSar(Number(amount) || 0)} SAR`}
+              </Button>
+            </div>
           </div>
         )}
 
@@ -215,16 +265,105 @@ export const CollectionPanel: React.FC<CollectionPanelProps> = ({ bill, onChange
         )}
 
         {open === 'receive' && live && (
-          <div className="max-w-xl space-y-2">
-            <Field label="Note (optional)" htmlFor="receive-note" hint="For example: counted at the office.">
-              <Input id="receive-note" value={text} onChange={(e) => setText(e.target.value)} />
-            </Field>
+          <div className="max-w-xl space-y-3">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Field
+                label="Amount the driver handed in (SAR)"
+                htmlFor="receive-amount"
+                required
+                hint={`${formatSar(outstanding)} was to be collected.`}
+                error={amountError ?? undefined}
+              >
+                <Input
+                  id="receive-amount"
+                  inputMode="decimal"
+                  invalid={amountError !== null}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                />
+              </Field>
+              <Field label="Note (optional)" htmlFor="receive-note" hint="For example: counted at the office.">
+                <Input id="receive-note" value={text} onChange={(e) => setText(e.target.value)} />
+              </Field>
+            </div>
+
+            {/* Short by something: somebody is holding it, and the GM is the
+                one who knows who (D82). */}
+            {shortfall > 0 && amountError === null && (
+              <div className="p-3 rounded-control border border-warn bg-warn-soft space-y-2">
+                <p className="text-tiny text-ink">
+                  {formatSar(shortfall)} SAR short. Where is it?
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  <label className="flex items-start gap-2 text-tiny text-ink cursor-pointer">
+                    <input
+                      type="radio"
+                      name="shortfall-owner"
+                      id="owner-driver"
+                      checked={owner === 'driver'}
+                      onChange={() => setOwner('driver')}
+                      className="mt-0.5 cursor-pointer"
+                    />
+                    <span>
+                      Still with {live.driverName}
+                      <span className="block text-micro text-ink-soft">
+                        The customer paid in full, so the bill is settled and {formatSar(shortfall)} SAR goes
+                        on {live.driverName}’s ledger.
+                      </span>
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2 text-tiny text-ink cursor-pointer">
+                    <input
+                      type="radio"
+                      name="shortfall-owner"
+                      id="owner-customer"
+                      checked={owner === 'customer'}
+                      onChange={() => setOwner('customer')}
+                      className="mt-0.5 cursor-pointer"
+                    />
+                    <span>
+                      Still with {bill.customerName}
+                      <span className="block text-micro text-ink-soft">
+                        Only {formatSar(Number(amount) || 0)} SAR is credited; the bill stays open for{' '}
+                        {formatSar(shortfall)} SAR and can be collected again.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+                <Field
+                  label="What happened?"
+                  htmlFor="shortfall-why"
+                  required
+                  hint="This is the line that will be shown when the money is asked for."
+                >
+                  <Textarea
+                    id="shortfall-why"
+                    rows={2}
+                    value={why}
+                    onChange={(e) => setWhy(e.target.value)}
+                  />
+                </Field>
+              </div>
+            )}
+
             <Button
               variant="primary"
               loading={busy}
-              onClick={() => void run(() => billingService.confirmCollection(live.id, text))}
+              disabled={amountError !== null || (shortfall > 0 && (!owner || !why.trim()))}
+              onClick={() =>
+                void run(() =>
+                  billingService.confirmCollection({
+                    collectionId: live.id,
+                    amount: Number(amount),
+                    shortfallOwner: shortfall > 0 ? (owner ?? undefined) : undefined,
+                    description: shortfall > 0 ? why : undefined,
+                    note: text,
+                  }),
+                )
+              }
             >
-              Take in {formatSar(bill.total)} SAR — this pays the bill
+              Take in {formatSar(Number(amount) || 0)} SAR
+              {shortfall <= 0 ? ' — this pays the bill' : ''}
             </Button>
           </div>
         )}

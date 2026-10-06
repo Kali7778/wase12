@@ -26,6 +26,7 @@ import {
   Tag,
   Truck,
   UserCog,
+  Wallet,
   Users,
   X,
 } from 'lucide-react';
@@ -208,6 +209,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
         { id: 'prices', label: 'Prices', icon: Tag, roles: COMMERCIAL },
         // Bills from stock and for customer orders; admin, GM and superadmin write them (D58).
         { id: 'bills', label: 'Bills', icon: ReceiptText, roles: COMMERCIAL },
+        // What each customer owes against what has been received (D86).
+        { id: 'customerAccounts', label: 'Customer Accounts', icon: Wallet, roles: COMMERCIAL },
         { id: 'invoices', ready: false, label: 'Invoices', icon: ShieldCheck, roles: COMMERCIAL },
         { id: 'expenses', ready: false, label: 'Expenses', icon: DollarSign, roles: COMMERCIAL },
         { id: 'drivers', ready: false, label: 'Drivers & Fleet', icon: Users, roles: ['ceo', 'gm', 'manager', 'dispatcher'] },
@@ -242,6 +245,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
       items: [
         // The head of every bill; the GM or superadmin fills it in (D65).
         { id: 'company', label: 'Company details', icon: Building, roles: ADMINISTRATION },
+        // What an employee owes the company; the GM alone keeps it (D84).
+        { id: 'employeeLedger', label: 'Employee ledger', icon: UserCog, roles: ADMINISTRATION },
         { id: 'users', ready: false, label: 'Users', icon: Users, roles: ADMINISTRATION },
         { id: 'backupSync', ready: false, label: 'Backup & Sync', icon: Database, roles: ADMINISTRATION },
         { id: 'settings', ready: false, label: 'Settings', icon: Settings, roles: ADMINISTRATION },

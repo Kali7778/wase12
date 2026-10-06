@@ -96,6 +96,8 @@ export type NavView =
   | 'bills'
   | 'collections'
   | 'trace'
+  | 'customerAccounts'
+  | 'employeeLedger'
   | 'ceoPanel'
   | 'gmPanel'
   | 'managerPanel'
