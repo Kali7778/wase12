@@ -6,6 +6,7 @@ import type {
   EmployeeBalance,
   EmployeeLedgerEntry,
   EmployeeLedgerKind,
+  ViolationType,
 } from '../models/ledger';
 
 /**
@@ -101,6 +102,7 @@ class LedgerServiceImpl {
       occurredOn: r.occurred_on as string,
       createdAt: r.created_at as string,
       kind: r.kind as EmployeeLedgerKind,
+      violationType: r.violation_type,
       description: r.description as string,
       remarks: r.remarks,
       amount: Number(r.amount ?? 0),
@@ -111,7 +113,11 @@ class LedgerServiceImpl {
     }));
   }
 
-  /** The GM's own entry: an advance, a fine, cash back, a deduction (D85). */
+  /**
+   * The GM's own entry: an expense, a fine, an advance, cash back, a
+   * deduction (D85, D87). A violation type goes with a fine and with
+   * nothing else — the database refuses the other combinations.
+   */
   async addEmployeeEntry(input: {
     employeeId: string;
     kind: EmployeeLedgerKind;
@@ -119,6 +125,7 @@ class LedgerServiceImpl {
     description: string;
     remarks?: string;
     occurredOn?: string;
+    violationType?: ViolationType;
   }): Promise<void> {
     const { error } = await supabase.rpc('add_employee_entry', {
       p_employee_id: input.employeeId,
@@ -127,6 +134,7 @@ class LedgerServiceImpl {
       p_description: input.description.trim(),
       p_remarks: input.remarks?.trim() || undefined,
       p_occurred_on: input.occurredOn || undefined,
+      p_violation_type: input.kind === 'fine' ? input.violationType : undefined,
     });
     if (error) throw toAppError(error, 'Writing the ledger entry');
   }

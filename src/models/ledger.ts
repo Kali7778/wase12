@@ -15,24 +15,67 @@ import type { CustomerTerms } from './deliveryNote';
 
 export type PaymentSource = Enums<'payment_source'>;
 export type EmployeeLedgerKind = Enums<'employee_ledger_kind'>;
+export type ViolationType = Enums<'violation_type'>;
 
 export const EMPLOYEE_KIND_LABEL: Record<EmployeeLedgerKind, string> = {
   shortfall: 'Short on a collection',
+  expense: 'General expense',
+  fine: 'Fine',
   charge: 'Charged',
   repayment: 'Paid back',
   salary_deduction: 'Taken from salary',
 };
 
+/** One line each, to explain the choice before it is made. */
+export const EMPLOYEE_KIND_HINT: Record<EmployeeLedgerKind, string> = {
+  shortfall: 'Recorded on its own when a collection comes up short.',
+  expense: 'Spent on the job — a meal on the road, parking, tea for the loaders.',
+  fine: 'A penalty. Say which rule was broken.',
+  charge: 'An advance, or anything else they have to answer for.',
+  repayment: 'They handed money back.',
+  salary_deduction: "Taken out of a month's salary.",
+};
+
 /** The kinds the GM may add by hand; a shortfall is never typed in. */
 export const MANUAL_EMPLOYEE_KINDS: EmployeeLedgerKind[] = [
+  'expense',
+  'fine',
   'charge',
   'repayment',
   'salary_deduction',
 ];
 
-/** Charges add to what is owed; the rest take it away. */
+/**
+ * Which way a kind will move the balance.
+ *
+ * Only for the hint shown while the GM is still choosing: once an entry
+ * exists the database says so itself, in `signedAmount`, and that is what
+ * the ledger is read from.
+ */
 export const isCharge = (kind: EmployeeLedgerKind): boolean =>
-  kind === 'shortfall' || kind === 'charge';
+  kind === 'shortfall' || kind === 'charge' || kind === 'expense' || kind === 'fine';
+
+export const VIOLATION_TYPES: ViolationType[] = [
+  'late_arrival',
+  'unauthorised_absence',
+  'traffic_ticket',
+  'cash_mishandling',
+  'goods_damaged',
+  'vehicle_damage',
+  'safety_violation',
+  'other',
+];
+
+export const VIOLATION_LABEL: Record<ViolationType, string> = {
+  late_arrival: 'Late arrival',
+  unauthorised_absence: 'Absent without leave',
+  traffic_ticket: 'Traffic ticket',
+  cash_mishandling: 'Cash mishandled',
+  goods_damaged: 'Goods damaged',
+  vehicle_damage: 'Vehicle damaged',
+  safety_violation: 'Safety rule broken',
+  other: 'Other',
+};
 
 export interface CustomerLedgerEntry {
   entryId: string;
@@ -67,6 +110,8 @@ export interface EmployeeLedgerEntry {
   occurredOn: string;
   createdAt: string;
   kind: EmployeeLedgerKind;
+  /** Set on a fine, null on everything else. */
+  violationType: ViolationType | null;
   description: string;
   remarks: string | null;
   amount: number;

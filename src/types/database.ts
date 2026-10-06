@@ -1378,6 +1378,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["employee_ledger_kind"];
           occurred_on: string;
           remarks: string | null;
+          violation_type: Database["public"]["Enums"]["violation_type"] | null;
         };
         Insert: {
           amount: number;
@@ -1391,6 +1392,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["employee_ledger_kind"];
           occurred_on?: string;
           remarks?: string | null;
+          violation_type?: Database["public"]["Enums"]["violation_type"] | null;
         };
         Update: {
           amount?: number;
@@ -1404,6 +1406,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["employee_ledger_kind"];
           occurred_on?: string;
           remarks?: string | null;
+          violation_type?: Database["public"]["Enums"]["violation_type"] | null;
         };
         Relationships: [
           {
@@ -2394,6 +2397,7 @@ export type Database = {
           occurred_on: string | null;
           remarks: string | null;
           signed_amount: number | null;
+          violation_type: Database["public"]["Enums"]["violation_type"] | null;
         };
         Relationships: [
           {
@@ -3168,6 +3172,7 @@ export type Database = {
           p_kind: Database["public"]["Enums"]["employee_ledger_kind"];
           p_occurred_on?: string;
           p_remarks?: string;
+          p_violation_type?: Database["public"]["Enums"]["violation_type"];
         };
         Returns: {
           amount: number;
@@ -3181,6 +3186,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["employee_ledger_kind"];
           occurred_on: string;
           remarks: string | null;
+          violation_type: Database["public"]["Enums"]["violation_type"] | null;
         };
         SetofOptions: {
           from: "*";
@@ -4212,7 +4218,13 @@ export type Database = {
         | "received"
         | "replaced"
         | "delivered";
-      employee_ledger_kind: "shortfall" | "charge" | "repayment" | "salary_deduction";
+      employee_ledger_kind:
+        | "shortfall"
+        | "charge"
+        | "expense"
+        | "fine"
+        | "repayment"
+        | "salary_deduction";
       extraction_method: "pdf_text" | "vision" | "manual";
       movement_direction: "IN" | "OUT";
       movement_type:
@@ -4235,6 +4247,15 @@ export type Database = {
         | "warehouse"
         | "driver"
         | "viewer";
+      violation_type:
+        | "late_arrival"
+        | "unauthorised_absence"
+        | "traffic_ticket"
+        | "cash_mishandling"
+        | "goods_damaged"
+        | "vehicle_damage"
+        | "safety_violation"
+        | "other";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -4379,7 +4400,14 @@ export const Constants = {
         "replaced",
         "delivered",
       ],
-      employee_ledger_kind: ["shortfall", "charge", "repayment", "salary_deduction"],
+      employee_ledger_kind: [
+        "shortfall",
+        "charge",
+        "expense",
+        "fine",
+        "repayment",
+        "salary_deduction",
+      ],
       extraction_method: ["pdf_text", "vision", "manual"],
       movement_direction: ["IN", "OUT"],
       movement_type: [
@@ -4395,6 +4423,16 @@ export const Constants = {
       slip_request_target: ["office", "warehouse"],
       slip_request_type: ["slip_for_delivery", "lost_slip", "damaged_slip", "other"],
       user_role: ["ceo", "gm", "manager", "admin", "dispatcher", "warehouse", "driver", "viewer"],
+      violation_type: [
+        "late_arrival",
+        "unauthorised_absence",
+        "traffic_ticket",
+        "cash_mishandling",
+        "goods_damaged",
+        "vehicle_damage",
+        "safety_violation",
+        "other",
+      ],
     },
   },
 } as const;
