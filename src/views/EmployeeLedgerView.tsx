@@ -86,7 +86,7 @@ const EmployeeList: React.FC<{ onOpen: (e: EmployeeBalance) => void }> = ({ onOp
     <div id="employee-ledger-view" className="space-y-5">
       <PageHeader
         title="Employee ledger"
-        description="What each employee owes the company, and what has been settled. Only the GM and a superadmin can see or write this."
+        description="What the drivers and warehouse keepers owe the company, and what has been settled. Only the GM and a superadmin can see or write this."
         stats={[
           { label: 'owing', value: rows.filter((r) => r.balance > 0).length },
           { label: 'owed in all (SAR)', value: formatSar(owed) },
